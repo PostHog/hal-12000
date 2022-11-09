@@ -1,16 +1,11 @@
 module.exports = {
     parser: '@typescript-eslint/parser',
     plugins: ['@typescript-eslint', 'simple-import-sort', 'no-only-tests', 'promise', 'prettier'],
-    extends: [
-        'plugin:@typescript-eslint/recommended',
-        'plugin:eslint-comments/recommended',
-        'plugin:node/recommended',
-        'prettier',
-    ],
+    extends: ['plugin:@typescript-eslint/recommended', 'plugin:eslint-comments/recommended', 'prettier'],
     parserOptions: {
         ecmaVersion: 2021,
         sourceType: 'module',
-        project: ['./tsconfig.eslint.json'],
+        project: ['./tsconfig.json'],
     },
     ignorePatterns: ['bin', 'dist', 'node_modules', 'src/config/idl'],
     rules: {
