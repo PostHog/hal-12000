@@ -1,0 +1,40 @@
+module.exports = {
+    parser: '@typescript-eslint/parser',
+    plugins: ['@typescript-eslint', 'simple-import-sort', 'no-only-tests', 'promise', 'prettier'],
+    extends: [
+        'plugin:@typescript-eslint/recommended',
+        'plugin:eslint-comments/recommended',
+        'plugin:node/recommended',
+        'prettier',
+    ],
+    parserOptions: {
+        ecmaVersion: 2021,
+        sourceType: 'module',
+        project: ['./tsconfig.eslint.json'],
+    },
+    ignorePatterns: ['bin', 'dist', 'node_modules', 'src/config/idl'],
+    rules: {
+        'no-only-tests/no-only-tests': 'error',
+        'simple-import-sort/imports': 'error',
+        'simple-import-sort/exports': 'error',
+        'no-unused-vars': 'off',
+        '@typescript-eslint/no-unused-vars': [
+            'error',
+            {
+                ignoreRestSiblings: true,
+            },
+        ],
+        '@typescript-eslint/prefer-ts-expect-error': 'error',
+        '@typescript-eslint/explicit-function-return-type': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off',
+        '@typescript-eslint/no-var-requires': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
+        'require-await': 'off',
+        '@typescript-eslint/require-await': 'error',
+        '@typescript-eslint/await-thenable': 'error',
+        '@typescript-eslint/no-floating-promises': 'error',
+        '@typescript-eslint/no-misused-promises': ['error'],
+        curly: 'error',
+    },
+    reportUnusedDisableDirectives: true,
+}
