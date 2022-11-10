@@ -2,7 +2,7 @@ import { App } from '@slack/bolt'
 
 import { fetchSupportHeroNWeeksFromNow } from './pagerduty'
 
-const SHOUT_OUT_CHANNEL = 'subscriptions-slack-testing'
+const SHOUT_OUT_CHANNEL = 'general'
 
 export const app = new App({
     token: process.env.SLACK_BOT_TOKEN,
