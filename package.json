@@ -8,18 +8,22 @@
         "node": ">=16"
     },
     "scripts": {
-        "start:dev": "ts-node-dev --exit-child src/app.ts",
-        "start": "node dist/app.js",
+        "start:dev": "ts-node-dev --exit-child src/index.ts",
+        "start": "node dist/index.js",
         "compile": "tsc",
         "prepare": "husky install",
         "lint": "eslint ."
     },
     "dependencies": {
-        "@slack/bolt": "^3.12.2"
+        "@slack/bolt": "^3.12.2",
+        "luxon": "^3.1.0",
+        "node-schedule": "^2.1.0"
     },
     "devDependencies": {
         "@pagerduty/pdjs": "^2.2.4",
+        "@types/luxon": "^3.1.0",
         "@types/node": "^18.11.9",
+        "@types/node-schedule": "^2.1.0",
         "@typescript-eslint/eslint-plugin": "^5.42.1",
         "@typescript-eslint/parser": "^5.42.1",
         "eslint": "^8.27.0",
