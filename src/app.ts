@@ -40,7 +40,7 @@ app.command('/support-hero', async ({ ack, respond }) => {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: `*This week's Support Hero*\n${currentSupportHeroMention}`,
+                    text: `*This week's Support Hero:*\n${currentSupportHeroMention}`,
                 },
             },
             {
@@ -84,7 +84,7 @@ export async function shoutAboutNextSupportHero(): Promise<void> {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: `*Next week's Support Hero*\n${nextSupportHeroMention}`,
+                    text: `*Next week's Support Hero:*\n${nextSupportHeroMention}`,
                 },
             },
             {
