@@ -4,7 +4,7 @@ _Figma designs [here](https://www.figma.com/file/4r5EO3RqFpsVWiyNC5MBLt/HAL-1200
 
 ## GitHub social preview banner
 
-<img width="640" height="320" src="./banner.png" alt="GitHub social preview banner">
+<img width="640" height="320" src="./social-preview.png" alt="GitHub social preview banner">
 
 ## Slack profile picture
 
