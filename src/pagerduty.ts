@@ -11,7 +11,7 @@ export interface PagerDutyUser {
     html_url: string
 }
 
-const pd = pdApi({ token: process.env.PAGERDUTY_TOKEN })  
+const pd = pdApi({ token: process.env.PAGERDUTY_TOKEN })
 
 /** Fetch who is/will be support hero at a given moment in time.
  *
@@ -33,5 +33,5 @@ async function fetchSupportHeroAtDateTime(dateTime: DateTime): Promise<PagerDuty
 }
 
 export function fetchSupportHeroNWeeksFromNow(n: number): Promise<PagerDutyUser> {
-    return fetchSupportHeroAtDateTime(DateTime.now().plus({ week: n }))
+    return fetchSupportHeroAtDateTime(DateTime.utc().plus({ week: n }))
 }
