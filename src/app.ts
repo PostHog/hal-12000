@@ -1,4 +1,5 @@
 import { App } from '@slack/bolt'
+import { DateTime } from 'luxon'
 
 import { fetchSupportHeroNWeeksFromNow } from './pagerduty'
 
@@ -56,13 +57,26 @@ app.command('/support-hero', async ({ ack, respond }) => {
     })
 })
 
+const NEW_SUPPORT_HERO_QUIPS: [string, string][] = [
+    [`Is it a bird? Is it a plane? No, it's a new Support Hero!`, `Be careful with those laser eyes, @.`],
+    ['Marvel Studios presents: Support Hero in the Multiverse of Issues.', 'Starring @.'],
+    ['A new Support Hero just dropped.', `Good luck managing supply and demand, @.`],
+    [`It's a new dawn… It's a new day… It's a new Support Hero!`, `I hope you're feeling good, @.`],
+    [
+        '✅ Windows update complete. In this version: a new Support Hero.',
+        `Just don't cause any blue screens of death, @!`,
+    ],
+    ['A new Support Hero is in town…', 'Good luck fighting ~crime~ bad data, @!'],
+]
+
 export async function shoutAboutCurrentSupportHero(): Promise<void> {
     const currentSupportHero = await fetchSupportHeroNWeeksFromNow(0)
     const currentSupportHeroMention = await fetchSlackMentionByEmail(currentSupportHero.email, currentSupportHero.name)
+    const [heading, punchline] = NEW_SUPPORT_HERO_QUIPS[DateTime.utc().weekNumber % NEW_SUPPORT_HERO_QUIPS.length]
 
     await app.client.chat.postMessage({
         channel: SHOUT_OUT_CHANNEL,
-        text: `_*A new Support Hero is in town…*_\nGood luck fighting ~crime~ bad data, *${currentSupportHeroMention}*!`,
+        text: `_*${heading}*_\n${punchline}`.replace('@', `*${currentSupportHeroMention}*`),
     })
 }
 
