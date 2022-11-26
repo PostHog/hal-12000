@@ -58,12 +58,12 @@ app.command('/support-hero', async ({ ack, respond }) => {
 })
 
 const NEW_SUPPORT_HERO_QUIPS: [string, string][] = [
-    [`Is it a bird? Is it a plane? No, it's a new Support Hero!`, `Be careful with those laser eyes, @.`],
-    ['Marvel Studios presents: Support Hero in the Multiverse of Issues.', 'Starring @.'],
-    ['A new Support Hero just dropped.', `Good luck managing supply and demand, @.`],
+    [`Is it a bird? Is it a plane? No, it's the new Support Hero!`, `Be careful with those laser eyes, @.`],
+    ['Marvel Studios presents: Support Hero in the Multiverse of Tickets.', 'Starring @.'],
+    ['A new Support Hero just dropped.', `Good luck managing supply and demand, @!`],
     [`It's a new dawn… It's a new day… It's a new Support Hero!`, `I hope you're feeling good, @.`],
     [
-        '✅ Windows update complete. In this version: a new Support Hero.',
+        '✅ Windows update complete. In this version: a brand new Support Hero.',
         `Just don't cause any blue screens of death, @!`,
     ],
     ['A new Support Hero is in town…', 'Good luck fighting ~crime~ bad data, @!'],
