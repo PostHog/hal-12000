@@ -62,7 +62,6 @@ const NEW_SUPPORT_HERO_QUIPS: [string, string][] = [
     ['Marvel Studios presents: Support Hero in the Multiverse of Tickets.', 'Starring @.'],
     ['A new Support Hero just dropped.', `Good luck managing supply and demand, @!`],
     [`It's a new dawn… It's a new day… It's a new Support Hero!`, `I hope you're feeling good, @.`],
-    ['Ho ho ho – a new Support Hero just came down the chimney.', 'Help yourself to some cookies, @!'],
     [
         '✅ Windows update complete. In this version: a brand new Support Hero.',
         `Just don't cause any blue screens of death, @!`,
