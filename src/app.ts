@@ -19,15 +19,6 @@ async function fetchSlackMentionByEmail(email: string, fallbackName: string): Pr
     return lookupResponse.user?.id ? `<@${lookupResponse.user.id}>` : fallbackName
 }
 
-/** Transform a channel name, e.g. "team-product-analytics", to its team name, e.g. "Product Analytics". */
-function channelToTeamName(channel: string): string {
-    return channel
-        .split('-')
-        .slice(1)
-        .map((word) => word[0].toUpperCase() + word.slice(1))
-        .join(' ')
-}
-
 app.command('/support-hero', async ({ ack, respond }) => {
     await ack()
 
@@ -78,19 +69,10 @@ const NEW_SUPPORT_HERO_QUIPS: [string, string][] = [
 ]
 
 async function shoutAboutCurrentSupportCastMember(sidekick?: Role): Promise<void> {
-    let channel: string
-    let scheduleId: string
-    let isSidekick = false
-    if (sidekick) {
-        channel = sidekick.channel
-        scheduleId = sidekick.scheduleId
-        isSidekick = true
-    } else {
-        channel = SUPPORT_HERO_ROLE.channel
-        scheduleId = SUPPORT_HERO_ROLE.scheduleId
-    }
+    const isSidekick = !!sidekick
+    const role = sidekick || SUPPORT_HERO_ROLE
 
-    const currentSupportCastMember = await fetchSupportCastMemberNWeeksFromNow(0, scheduleId)
+    const currentSupportCastMember = await fetchSupportCastMemberNWeeksFromNow(0, role.scheduleId)
     const currentSupportCastMemberMention = await fetchSlackMentionByEmail(
         currentSupportCastMember.email,
         currentSupportCastMember.name
@@ -101,7 +83,7 @@ async function shoutAboutCurrentSupportCastMember(sidekick?: Role): Promise<void
     if (!isSidekick) {
         ;[heading, punchline] = NEW_SUPPORT_HERO_QUIPS[DateTime.utc().weekNumber % NEW_SUPPORT_HERO_QUIPS.length]
     } else {
-        heading = `It's your time to shine as the Support Sidekick for ${channelToTeamName(channel)}, @!`
+        heading = `It's your time to shine as the ${role.name}, @!`
     }
 
     const template = punchline ? `_*${heading}*_\n${punchline}` : `*${heading}*`
@@ -110,49 +92,32 @@ async function shoutAboutCurrentSupportCastMember(sidekick?: Role): Promise<void
         punchline ? `*${currentSupportCastMemberMention}*` : currentSupportCastMemberMention
     )
     await app.client.chat.postMessage({
-        channel,
+        channel: role.channel,
         text,
     })
 }
 
 async function shoutAboutUpcomingSupportCastMembers(sidekick?: Role): Promise<void> {
-    let channel: string
-    let scheduleId: string
-    let isSidekick = false
-    if (sidekick) {
-        channel = sidekick.channel
-        scheduleId = sidekick.scheduleId
-        isSidekick = true
-    } else {
-        channel = SUPPORT_HERO_ROLE.channel
-        scheduleId = SUPPORT_HERO_ROLE.scheduleId
-    }
+    const role = sidekick || SUPPORT_HERO_ROLE
 
     const [nextSupportCastMember, secondNextSupportCastMember] = await Promise.all([
-        fetchSupportCastMemberNWeeksFromNow(1, scheduleId),
-        fetchSupportCastMemberNWeeksFromNow(2, scheduleId),
+        fetchSupportCastMemberNWeeksFromNow(1, role.scheduleId),
+        fetchSupportCastMemberNWeeksFromNow(2, role.scheduleId),
     ])
     const [nextSupportCastMemberMention, secondNextSupportCastMemberMention] = await Promise.all([
         fetchSlackMentionByEmail(nextSupportCastMember.email, nextSupportCastMember.name),
         fetchSlackMentionByEmail(secondNextSupportCastMember.email, secondNextSupportCastMember.name),
     ])
 
-    let roleName: string
-    if (!isSidekick) {
-        roleName = 'Support Hero'
-    } else {
-        roleName = `Support Sidekick for ${channelToTeamName(channel)}`
-    }
-
     await app.client.chat.postMessage({
-        channel,
-        text: `*Next week's ${roleName}*: ${nextSupportCastMemberMention}. The week after that: ${secondNextSupportCastMemberMention}.`,
+        channel: role.channel,
+        text: `*Next week's ${role.name}*: ${nextSupportCastMemberMention}. The week after that: ${secondNextSupportCastMemberMention}.`,
         blocks: [
             {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: `*Next week's ${roleName}:*\n${nextSupportCastMemberMention}`,
+                    text: `*Next week's ${role.name}:*\n${nextSupportCastMemberMention}`,
                 },
             },
             {
