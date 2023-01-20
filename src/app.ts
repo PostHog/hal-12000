@@ -48,7 +48,7 @@ app.command('/support-hero', async ({ ack, respond }) => {
                 elements: [
                     {
                         type: 'mrkdwn',
-                        text: `Next up: *${nextSupportHeroMention}*, then *${secondNextSupportHeroMention}*.`,
+                        text: `Next up: ${nextSupportHeroMention}, then ${secondNextSupportHeroMention}.`,
                     },
                 ],
             },
