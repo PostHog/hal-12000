@@ -1,9 +1,17 @@
 import { App } from '@slack/bolt'
 import { DateTime } from 'luxon'
 
-import { fetchSupportHeroNWeeksFromNow } from './pagerduty'
+import { fetchSupportPersonNWeeksFromNow } from './pagerduty'
 
-const SHOUT_OUT_CHANNEL = 'general'
+type ChannelWithScheduleId = readonly [string, string]
+
+const HERO_CHANNEL_WITH_SCHEDULE_ID: ChannelWithScheduleId = ['general', process.env.SUPPORT_HERO_SCHEDULE_ID!]
+const SIDEKICK_CHANNELS_WITH_SCHEDULE_IDS: ChannelWithScheduleId[] = process.env
+    .SUPPORT_SIDEKICK_TEAM_CHANNELS_WITH_SCHEDULE_IDS
+    ? process.env.SUPPORT_SIDEKICK_TEAM_CHANNELS_WITH_SCHEDULE_IDS.split(',').map(
+          (channelWithScheduleId) => channelWithScheduleId.trim().split(':') as [string, string]
+      )
+    : []
 
 export const app = new App({
     token: process.env.SLACK_BOT_TOKEN,
@@ -20,13 +28,24 @@ async function fetchSlackMentionByEmail(email: string, fallbackName: string): Pr
     return lookupResponse.user?.id ? `<@${lookupResponse.user.id}>` : fallbackName
 }
 
+/** Transform a channel name, e.g. "team-product-analytics", to its team name, e.g. "Product Analytics". */
+function channelToTeamName(channel: string): string {
+    return channel
+        .replace('team-', '')
+        .split('-')
+        .slice(1)
+        .map((word) => word[0].toUpperCase() + word.slice(1))
+        .join(' ')
+}
+
 app.command('/support-hero', async ({ ack, respond }) => {
     await ack()
 
+    const [, scheduleId] = HERO_CHANNEL_WITH_SCHEDULE_ID
     const [currentSupportHero, nextSupportHero, secondNextSupportHero] = await Promise.all([
-        fetchSupportHeroNWeeksFromNow(0),
-        fetchSupportHeroNWeeksFromNow(1),
-        fetchSupportHeroNWeeksFromNow(2),
+        fetchSupportPersonNWeeksFromNow(0, scheduleId),
+        fetchSupportPersonNWeeksFromNow(1, scheduleId),
+        fetchSupportPersonNWeeksFromNow(2, scheduleId),
     ])
     const [currentSupportHeroMention, nextSupportHeroMention, secondNextSupportHeroMention] = await Promise.all([
         fetchSlackMentionByEmail(currentSupportHero.email, currentSupportHero.name),
@@ -69,36 +88,75 @@ const NEW_SUPPORT_HERO_QUIPS: [string, string][] = [
     ['A new Support Hero is in town…', 'Good luck fighting ~crime~ bad data, @!'],
 ]
 
-export async function shoutAboutCurrentSupportHero(): Promise<void> {
-    const currentSupportHero = await fetchSupportHeroNWeeksFromNow(0)
-    const currentSupportHeroMention = await fetchSlackMentionByEmail(currentSupportHero.email, currentSupportHero.name)
-    const [heading, punchline] = NEW_SUPPORT_HERO_QUIPS[DateTime.utc().weekNumber % NEW_SUPPORT_HERO_QUIPS.length]
+async function shoutAboutCurrentSupportPerson(sidekickChannelWithScheduleId?: ChannelWithScheduleId): Promise<void> {
+    let channel: string
+    let scheduleId: string
+    let isSidekick = false
+    if (sidekickChannelWithScheduleId) {
+        ;[channel, scheduleId] = sidekickChannelWithScheduleId
+        isSidekick = true
+    } else {
+        ;[channel, scheduleId] = HERO_CHANNEL_WITH_SCHEDULE_ID
+    }
 
+    const currentSupportPerson = await fetchSupportPersonNWeeksFromNow(0, scheduleId)
+    const currentSupportPersonMention = await fetchSlackMentionByEmail(
+        currentSupportPerson.email,
+        currentSupportPerson.name
+    )
+
+    let heading: string
+    let punchline: string | undefined
+    if (!isSidekick) {
+        ;[heading, punchline] = NEW_SUPPORT_HERO_QUIPS[DateTime.utc().weekNumber % NEW_SUPPORT_HERO_QUIPS.length]
+    } else {
+        heading = `It's your time to shine as the Support Sidekick for ${channelToTeamName(channel)}, @!`
+    }
+
+    const template = punchline ? `_*${heading}*_\n${punchline}` : `*${heading}*`
+    const text = template.replace('@', punchline ? `*${currentSupportPersonMention}*` : currentSupportPersonMention)
     await app.client.chat.postMessage({
-        channel: SHOUT_OUT_CHANNEL,
-        text: `_*${heading}*_\n${punchline}`.replace('@', `*${currentSupportHeroMention}*`),
+        channel,
+        text,
     })
 }
 
-export async function shoutAboutNextSupportHero(): Promise<void> {
-    const [nextSupportHero, secondNextSupportHero] = await Promise.all([
-        fetchSupportHeroNWeeksFromNow(1),
-        fetchSupportHeroNWeeksFromNow(2),
+async function shoutAboutUpcomingSupportPersons(sidekickChannelWithScheduleId?: ChannelWithScheduleId): Promise<void> {
+    let channel: string
+    let scheduleId: string
+    let isSidekick = false
+    if (sidekickChannelWithScheduleId) {
+        ;[channel, scheduleId] = sidekickChannelWithScheduleId
+        isSidekick = true
+    } else {
+        ;[channel, scheduleId] = HERO_CHANNEL_WITH_SCHEDULE_ID
+    }
+
+    const [nextSupportPerson, secondNextSupportPerson] = await Promise.all([
+        fetchSupportPersonNWeeksFromNow(1, scheduleId),
+        fetchSupportPersonNWeeksFromNow(2, scheduleId),
     ])
-    const [nextSupportHeroMention, secondNextSupportHeroMention] = await Promise.all([
-        fetchSlackMentionByEmail(nextSupportHero.email, nextSupportHero.name),
-        fetchSlackMentionByEmail(secondNextSupportHero.email, secondNextSupportHero.name),
+    const [nextSupportPersonMention, secondNextSupportPersonMention] = await Promise.all([
+        fetchSlackMentionByEmail(nextSupportPerson.email, nextSupportPerson.name),
+        fetchSlackMentionByEmail(secondNextSupportPerson.email, secondNextSupportPerson.name),
     ])
 
+    let roleName: string
+    if (!isSidekick) {
+        roleName = 'Support Hero'
+    } else {
+        roleName = `Support Sidekick for ${channelToTeamName(channel)}`
+    }
+
     await app.client.chat.postMessage({
-        channel: SHOUT_OUT_CHANNEL,
-        text: `*Next week's Support Hero*: ${nextSupportHeroMention}. The week after that: ${secondNextSupportHeroMention}.`,
+        channel,
+        text: `*Next week's ${roleName}*: ${nextSupportPersonMention}. The week after that: ${secondNextSupportPersonMention}.`,
         blocks: [
             {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: `*Next week's Support Hero:*\n${nextSupportHeroMention}`,
+                    text: `*Next week's ${roleName}:*\n${nextSupportPersonMention}`,
                 },
             },
             {
@@ -106,10 +164,24 @@ export async function shoutAboutNextSupportHero(): Promise<void> {
                 elements: [
                     {
                         type: 'mrkdwn',
-                        text: `The week after that: ${secondNextSupportHeroMention}`,
+                        text: `The week after that: ${secondNextSupportPersonMention}`,
                     },
                 ],
             },
         ],
     })
+}
+
+export async function shoutAboutCurrentCast(): Promise<void> {
+    await Promise.all([
+        shoutAboutCurrentSupportPerson(),
+        ...SIDEKICK_CHANNELS_WITH_SCHEDULE_IDS.map(shoutAboutCurrentSupportPerson),
+    ])
+}
+
+export async function shoutAboutUpcomingCast(): Promise<void> {
+    await Promise.all([
+        shoutAboutUpcomingSupportPersons(),
+        ...SIDEKICK_CHANNELS_WITH_SCHEDULE_IDS.map(shoutAboutUpcomingSupportPersons),
+    ])
 }

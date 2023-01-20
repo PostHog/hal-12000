@@ -18,20 +18,19 @@ const pd = pdApi({ token: process.env.PAGERDUTY_TOKEN })
  * It takes one request to fetch each user, because if multiple users are fetched at a time, there's no guarantee
  * they will be returned in the order of the support hero rotation.
  */
-async function fetchSupportHeroAtDateTime(dateTime: DateTime): Promise<PagerDutyUser> {
+async function fetchSupportPersonAtDateTime(dateTime: DateTime, scheduleId: string): Promise<PagerDutyUser> {
     const requestData = {
         since: dateTime.toISO(),
         // `until` to be later than `since`, otherwise the range is treated as empty
         until: dateTime.plus({ second: 1 }).toISO(),
     }
-    const scheduleId = process.env.PAGERDUTY_SUPPORT_HERO_SCHEDULE_ID
     const { data } = await pd.get(`/schedules/${scheduleId}/users`, { data: requestData })
     if (!data.users?.length) {
-        throw new Error(`Could not fetch support hero`)
+        throw new Error(`Could not fetch support person`)
     }
     return data.users[0]
 }
 
-export function fetchSupportHeroNWeeksFromNow(n: number): Promise<PagerDutyUser> {
-    return fetchSupportHeroAtDateTime(DateTime.utc().plus({ week: n }))
+export function fetchSupportPersonNWeeksFromNow(n: number, scheduleId: string): Promise<PagerDutyUser> {
+    return fetchSupportPersonAtDateTime(DateTime.utc().plus({ week: n }), scheduleId)
 }
