@@ -15,9 +15,11 @@ export const SUPPORT_HERO_ROLE: Role = {
 /** Secondary support people, per-team. */
 export const SUPPORT_SIDEKICK_ROLES: Role[] = process.env.SUPPORT_SIDEKICK_TEAMS_WITH_SCHEDULE_IDS
     ? process.env.SUPPORT_SIDEKICK_TEAMS_WITH_SCHEDULE_IDS.split(',').map((teamWithScheduleId) => {
-          const [teamSlug, scheduleId] = teamWithScheduleId.trim().split(':')
+          // The format for each team is "<team-slug>:<pagerduty-schedule-id>[:<custom-role-name>]"
+          // Fake example for #team-infrastructure: "infrastructure:PIR8F1:Infra Hero"
+          const [teamSlug, scheduleId, customRoleName] = teamWithScheduleId.trim().split(':')
           return {
-              name: `Support Sidekick for ${slugToTitleCase(teamSlug)}`,
+              name: customRoleName || `Support Sidekick for ${slugToTitleCase(teamSlug)}`,
               channel: `team-${teamSlug}`,
               scheduleId,
           }
