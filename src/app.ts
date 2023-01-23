@@ -83,7 +83,9 @@ async function shoutAboutCurrentSupportCastMember(sidekick?: Role): Promise<void
     if (!isSidekick) {
         ;[heading, punchline] = NEW_SUPPORT_HERO_QUIPS[DateTime.utc().weekNumber % NEW_SUPPORT_HERO_QUIPS.length]
     } else {
-        heading = `It's your time to shine as the ${role.name}, @!`
+        // Don't include "the" for custom names such as "Luigi", only for generic names such as "the Support Sidekick"
+        const isGenericName = role.name.includes('Hero') || role.name.includes('Sidekick')
+        heading = `It's your time to shine as ${isGenericName ? 'the ' : ''}${role.name}, @!`
     }
 
     const template = punchline ? `_*${heading}*_\n${punchline}` : `*${heading}*`
