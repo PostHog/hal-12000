@@ -10,9 +10,11 @@ Sentry.init({
     tracesSampleRate: 1.0,
 })
 
-// Every Monday at 7:15 AM UTC (which should be soon after the Roots message)
+// Every Monday at 7:15 AM UTC (which should be soon after the Deel message)
 scheduleJob('15 7 * * 1', shoutAboutCurrentCast)
-// Every Wednesday at 7:15 AM UTC (which should be soon after the Roots message, and also before sprint planning)
+// Every Wednesday at 7:15 AM UTC (which should be soon after the Deel message, and also before sprint planning)
 scheduleJob('15 7 * * 3', shoutAboutUpcomingCast)
+
+scheduleJob(new Date('2023-02-27T12:00:00'), shoutAboutCurrentCast) // TODO: Remove
 
 void app.start()
