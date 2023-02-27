@@ -24,8 +24,14 @@ async function fetchSupportCastMemberAtDateTime(dateTime: DateTime, scheduleId: 
         // `until` to be later than `since`, otherwise the range is treated as empty
         until: dateTime.plus({ second: 1 }).toISO(),
     }
-    const { data } = await pd.get(`/schedules/${scheduleId}/users`, { data: requestData })
-    if (!data.users?.length) {
+    let data: { users: PagerDutyUser[] }
+    try {
+        data = (await pd.get(`/schedules/${scheduleId}/users`, { data: requestData })).data
+    } catch {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        data = (await pd.get(`/schedules/${scheduleId}/users`, { data: requestData })).data
+    }
+    if (!data.users.length) {
         throw new Error(`No cast member found`)
     }
     return data.users[0]
