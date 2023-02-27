@@ -1,3 +1,4 @@
+import { captureException } from '@sentry/node'
 import { App } from '@slack/bolt'
 import { DateTime } from 'luxon'
 
@@ -18,6 +19,11 @@ async function fetchSlackMentionByEmail(email: string, fallbackName: string): Pr
     }
     return lookupResponse.user?.id ? `<@${lookupResponse.user.id}>` : fallbackName
 }
+
+// eslint-disable-next-line @typescript-eslint/require-await
+app.error(async (error) => {
+    captureException(error.original || error)
+})
 
 app.command('/support-hero', async ({ ack, respond }) => {
     await ack()
