@@ -1,5 +1,6 @@
 import { captureException } from '@sentry/node'
 import { App } from '@slack/bolt'
+import { UsersLookupByEmailResponse } from '@slack/web-api'
 import { DateTime } from 'luxon'
 
 import { fetchSupportCastMemberNWeeksFromNow } from './pagerduty'
@@ -13,11 +14,17 @@ export const app = new App({
 })
 
 async function fetchSlackMentionByEmail(email: string, fallbackName: string): Promise<string> {
-    const lookupResponse = await app.client.users.lookupByEmail({ email })
-    if (lookupResponse.error) {
-        throw new Error(lookupResponse.error)
+    let user: UsersLookupByEmailResponse['user']
+    try {
+        const lookupResponse = await app.client.users.lookupByEmail({ email })
+        user = lookupResponse.user
+        if (lookupResponse.error) {
+            captureException(lookupResponse.error)
+        }
+    } catch (error) {
+        captureException(error)
     }
-    return lookupResponse.user?.id ? `<@${lookupResponse.user.id}>` : fallbackName
+    return user?.id ? `<@${user.id}>` : fallbackName
 }
 
 // eslint-disable-next-line @typescript-eslint/require-await
