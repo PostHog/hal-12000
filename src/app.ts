@@ -95,7 +95,8 @@ async function shoutAboutCurrentSupportCastMember(sidekick?: Role): Promise<void
     let punchline: string | undefined
     if (!isSidekick) {
         ;[heading, punchline] = NEW_SUPPORT_HERO_QUIPS[DateTime.utc().weekNumber % NEW_SUPPORT_HERO_QUIPS.length]
-        punchline += "\n<Take this guide with you|https://posthog.com/handbook/engineering/support-hero> on your journey."
+        punchline +=
+            '\n<https://posthog.com/handbook/engineering/support-hero|Take this guide with you> on your journey.'
     } else {
         // Don't include "the" for custom names such as "Luigi", only for generic names such as "the Support Sidekick"
         const isGenericName = role.name.includes('Hero') || role.name.includes('Sidekick')
