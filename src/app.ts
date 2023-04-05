@@ -13,18 +13,21 @@ export const app = new App({
     socketMode: true,
 })
 
-async function fetchSlackMentionByEmail(email: string, fallbackName: string): Promise<string> {
-    let user: UsersLookupByEmailResponse['user']
+async function fetchSlackMentionByEmail(userToFind: { name: string; email: string } | null): Promise<string> {
+    if (!userToFind) {
+        return '⚠️ No one scheduled'
+    }
+    let userFound: UsersLookupByEmailResponse['user']
     try {
-        const lookupResponse = await app.client.users.lookupByEmail({ email })
-        user = lookupResponse.user
+        const lookupResponse = await app.client.users.lookupByEmail({ email: userToFind.email })
+        userFound = lookupResponse.user
         if (lookupResponse.error) {
             captureException(lookupResponse.error)
         }
     } catch (error) {
         captureException(error)
     }
-    return user?.id ? `<@${user.id}>` : fallbackName
+    return userFound?.id ? `<@${userFound.id}>` : userToFind.name
 }
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -41,9 +44,9 @@ app.command('/support-hero', async ({ ack, respond }) => {
         fetchSupportCastMemberNWeeksFromNow(2, SUPPORT_HERO_ROLE.scheduleId),
     ])
     const [currentSupportHeroMention, nextSupportHeroMention, secondNextSupportHeroMention] = await Promise.all([
-        fetchSlackMentionByEmail(currentSupportHero.email, currentSupportHero.name),
-        fetchSlackMentionByEmail(nextSupportHero.email, nextSupportHero.name),
-        fetchSlackMentionByEmail(secondNextSupportHero.email, secondNextSupportHero.name),
+        fetchSlackMentionByEmail(currentSupportHero),
+        fetchSlackMentionByEmail(nextSupportHero),
+        fetchSlackMentionByEmail(secondNextSupportHero),
     ])
 
     await respond({
@@ -70,15 +73,12 @@ app.command('/support-hero', async ({ ack, respond }) => {
 })
 
 const NEW_SUPPORT_HERO_QUIPS: [string, string][] = [
-    [`Is it a bird? Is it a plane? No, it's the new Support Hero!`, `Be careful with those laser eyes, @.`],
-    ['Marvel Studios presents: Support Hero in the Multiverse of Tickets.', 'Starring @.'],
-    ['A new Support Hero just dropped.', `Good luck managing supply and demand, @!`],
-    [`It's a new dawn… It's a new day… It's a new Support Hero!`, `I hope you're feeling good, @.`],
-    [
-        '✅ Windows update complete. In this version: a brand new Support Hero.',
-        `Just don't cause any blue screens of death, @!`,
-    ],
-    ['A new Support Hero is in town…', 'Good luck fighting ~crime~ bad data, @!'],
+    [`Is it a bird? Is it a plane? No, it's the new $!`, `Be careful with those laser eyes, @.`],
+    ['Marvel Studios presents: $ in the Multiverse of Tickets.', 'Starring @.'],
+    ['A new $ just dropped.', `Good luck managing supply and demand, @!`],
+    [`It's a new dawn… It's a new day… It's a new $!`, `I hope you're feeling good, @.`],
+    ['✅ Windows update complete. In this version: a brand new $.', `Just don't cause any blue screens of death, @!`],
+    ['A new $ is in town…', 'Good luck fighting ~crime~ bad data, @!'],
 ]
 
 async function shoutAboutCurrentSupportCastMember(sidekick?: Role): Promise<void> {
@@ -86,10 +86,7 @@ async function shoutAboutCurrentSupportCastMember(sidekick?: Role): Promise<void
     const role = sidekick || SUPPORT_HERO_ROLE
 
     const currentSupportCastMember = await fetchSupportCastMemberNWeeksFromNow(0, role.scheduleId)
-    const currentSupportCastMemberMention = await fetchSlackMentionByEmail(
-        currentSupportCastMember.email,
-        currentSupportCastMember.name
-    )
+    const currentSupportCastMemberMention = await fetchSlackMentionByEmail(currentSupportCastMember)
 
     let heading: string
     let punchline: string | undefined
@@ -98,16 +95,19 @@ async function shoutAboutCurrentSupportCastMember(sidekick?: Role): Promise<void
         punchline +=
             '\n<https://posthog.com/handbook/engineering/support-hero|Take this guide with you> on your journey.'
     } else {
-        // Don't include "the" for custom names such as "Luigi", only for generic names such as "the Support Sidekick"
-        const isGenericName = role.name.includes('Hero') || role.name.includes('Sidekick')
-        heading = `It's your time to shine as ${isGenericName ? 'the ' : ''}${role.name}, @!`
+        heading = `It's your time to shine as $, @!`
     }
 
     const template = punchline ? `_*${heading}*_\n${punchline}` : `*${heading}*`
-    const text = template.replace(
-        '@',
-        punchline ? `*${currentSupportCastMemberMention}*` : currentSupportCastMemberMention
-    )
+    // Don't include "the" for custom names such as "Luigi", only for generic names such as "the Support Sidekick"
+    const isRoleNameGenericName = isSidekick && (role.name.includes('Hero') || role.name.includes('Sidekick'))
+    const text = template
+        .replace(
+            '$',
+            (isRoleNameGenericName ? 'the ' : '') +
+                `<https://posthog.pagerduty.com/schedules#${role.scheduleId}|${role.name}>`
+        )
+        .replace('@', punchline ? `*${currentSupportCastMemberMention}*` : currentSupportCastMemberMention)
     await app.client.chat.postMessage({
         channel: role.channel,
         text,
@@ -122,8 +122,8 @@ async function shoutAboutUpcomingSupportCastMembers(sidekick?: Role): Promise<vo
         fetchSupportCastMemberNWeeksFromNow(2, role.scheduleId),
     ])
     const [nextSupportCastMemberMention, secondNextSupportCastMemberMention] = await Promise.all([
-        fetchSlackMentionByEmail(nextSupportCastMember.email, nextSupportCastMember.name),
-        fetchSlackMentionByEmail(secondNextSupportCastMember.email, secondNextSupportCastMember.name),
+        fetchSlackMentionByEmail(nextSupportCastMember),
+        fetchSlackMentionByEmail(secondNextSupportCastMember),
     ])
 
     await app.client.chat.postMessage({
