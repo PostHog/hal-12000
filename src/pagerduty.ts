@@ -13,10 +13,10 @@ export interface PagerDutyUser {
 
 const pd = pdApi({ token: process.env.PAGERDUTY_TOKEN })
 
-/** Fetch who is/will be support hero at a given moment in time.
+/** Fetch who is/will be support at a given moment in time.
  *
  * It takes one request to fetch each user, because if multiple users are fetched at a time, there's no guarantee
- * they will be returned in the order of the support hero rotation.
+ * they will be returned in the order of the support rotation.
  */
 async function fetchSupportCastMemberAtDateTime(dateTime: DateTime, scheduleId: string): Promise<PagerDutyUser | null> {
     const requestData = {

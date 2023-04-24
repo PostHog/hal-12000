@@ -8,4 +8,4 @@ This bespoke artificial intelligence made for PostHog helps with everyday tasks,
 - calculating orbital maneuver parameters
 - playing chess
 - maintaining appropriate hydraulics pressure
-- notifying about Support Hero duties
+- notifying about support duties

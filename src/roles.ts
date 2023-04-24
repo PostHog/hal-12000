@@ -1,15 +1,8 @@
-/** A role can be either "Support Hero" or "Support Sidekick for <Team>". */
+/** "Support Sidekick for <Team>". */
 export interface Role {
     name: string
     channel: string
     scheduleId: string
-}
-
-/** The primary support person. */
-export const SUPPORT_HERO_ROLE: Role = {
-    name: 'Support Hero',
-    channel: 'general',
-    scheduleId: process.env.SUPPORT_HERO_SCHEDULE_ID!,
 }
 
 /** Secondary support people, per-team. */
