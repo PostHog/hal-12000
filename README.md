@@ -9,3 +9,16 @@ This bespoke artificial intelligence made for PostHog helps with everyday tasks,
 - playing chess
 - maintaining appropriate hydraulics pressure
 - notifying about support duties
+
+### Scopes
+
+HAL 12000 requires the following bot token scopes to work properly:
+
+- `channels:read`
+- `channels:join`
+- `channels:write.topic`
+- `chat:write`
+- `chat:write.public`
+- `im:write`
+- `users:read`
+- `users:read.email`
