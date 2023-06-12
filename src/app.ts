@@ -43,7 +43,7 @@ async function shoutAboutCurrentSupportCastMember(role: Role): Promise<void> {
     const currentSupportCastMemberMention = await fetchSlackMentionByEmail(currentSupportCastMember)
 
     await Promise.all([
-        app.client.channels.setTopic({
+        app.client.conversations.setTopic({
             channel: role.channel.replace('team', 'support'), // e.g. #team-pipeline -> #support-pipeline
             topic: `Current ${role.name}: ${currentSupportCastMemberMention}`,
         }),
