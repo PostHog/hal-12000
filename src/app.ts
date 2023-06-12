@@ -42,17 +42,7 @@ async function shoutAboutCurrentSupportCastMember(role: Role): Promise<void> {
     const currentSupportCastMember = await fetchSupportCastMemberNWeeksFromNow(0, role.scheduleId)
     const currentSupportCastMemberMention = await fetchSlackMentionByEmail(currentSupportCastMember)
 
-    const template = `*It's your time to shine as $, @!*`
-    // Don't include "the" for custom names such as "Luigi", only for generic names such as "the Support Sidekick"
-    const isRoleNameGenericName = role.name.includes('Hero') || role.name.includes('Sidekick')
-    const text = template
-        .replace('$', (isRoleNameGenericName ? 'the ' : '') + linkifyRoleName(role))
-        .replace('@', currentSupportCastMemberMention)
     await Promise.all([
-        app.client.chat.postMessage({
-            channel: role.channel,
-            text,
-        }),
         app.client.channels.setTopic({
             channel: role.channel.replace('team', 'support'), // e.g. #team-pipeline -> #support-pipeline
             topic: `Current ${role.name}: ${currentSupportCastMemberMention}`,

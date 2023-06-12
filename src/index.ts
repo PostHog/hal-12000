@@ -16,3 +16,4 @@ scheduleJob('15 7 * * 1', shoutAboutCurrentCast)
 scheduleJob('15 7 * * 3', shoutAboutUpcomingCast)
 
 void app.start()
+void shoutAboutCurrentCast()
