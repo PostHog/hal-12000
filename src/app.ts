@@ -2,8 +2,8 @@ import { captureException } from '@sentry/node'
 import { App } from '@slack/bolt'
 import { UsersLookupByEmailResponse } from '@slack/web-api'
 
-import { fetchSupportCastMemberNWeeksFromNow } from './pagerduty'
-import { Role, SUPPORT_SIDEKICK_ROLES } from './roles'
+import { kudosGive, kudosShow } from './kudos'
+import { Role } from './roles'
 
 export const app = new App({
     token: process.env.SLACK_BOT_TOKEN,
@@ -12,7 +12,7 @@ export const app = new App({
     socketMode: true,
 })
 
-async function fetchSlackMentionByEmail(userToFind: { name: string; email: string } | null): Promise<string> {
+export async function fetchSlackMentionByEmail(userToFind: { name: string; email: string } | null): Promise<string> {
     if (!userToFind) {
         return '⚠️ No one scheduled'
     }
@@ -29,7 +29,7 @@ async function fetchSlackMentionByEmail(userToFind: { name: string; email: strin
     return userFound?.id ? `<@${userFound.id}>` : userToFind.name
 }
 
-function linkifyRoleName(role: Role): string {
+export function linkifyRoleName(role: Role): string {
     return `<https://posthog.pagerduty.com/schedules#${role.scheduleId}|${role.name}>`
 }
 
@@ -38,103 +38,14 @@ app.error(async (error) => {
     captureException(error.original || error)
 })
 
-async function updateSupportChannelTopic(role: Role, supportCastMemberMention: string): Promise<void> {
-    const channelsResponse = await app.client.conversations.list({
-        types: 'public_channel',
-        exclude_archived: true,
-        limit: 1000,
-    })
-    if (channelsResponse.error) {
-        throw channelsResponse.error
-    }
-    const supportChannelName = role.channel.replace('team', 'support') // e.g. team-pipeline -> support-pipeline
-    const channel = channelsResponse.channels?.find((channel) => channel.name === supportChannelName)
-    if (!channel?.id) {
-        throw new Error(`Channel #${supportChannelName} wasn't found in the first page of results`)
-    }
-    if (!channel.is_member) {
-        await app.client.conversations.join({
-            channel: channel.id,
-        })
-    }
-    const upToDateTopic = `${role.name}: ${supportCastMemberMention}`
-    if (channel.topic !== upToDateTopic) {
-        await app.client.conversations.setTopic({
-            channel: channel.id,
-            topic: `Current ${role.name}: ${supportCastMemberMention}`,
-        })
-    }
-}
+app.command('/kudos', async ({ command, ack, respond }) => {
+    await ack()
 
-async function shoutAboutCurrentSupportCastMember(role: Role): Promise<void> {
-    const currentSupportCastMember = await fetchSupportCastMemberNWeeksFromNow(0, role.scheduleId)
-    const currentSupportCastMemberMention = await fetchSlackMentionByEmail(currentSupportCastMember)
+    const args = command.text.trim().split(' ').filter(Boolean)
 
-    const template = `*It's your time to shine as $, @!*`
-    // Don't include "the" for custom names such as "Luigi", only for generic names such as "the Support Sidekick"
-    const isRoleNameGenericName = role.name.includes('Hero') || role.name.includes('Sidekick')
-    const text = template
-        .replace('$', (isRoleNameGenericName ? 'the ' : '') + linkifyRoleName(role))
-        .replace('@', currentSupportCastMemberMention)
-    await Promise.all([
-        app.client.chat.postMessage({
-            channel: role.channel,
-            text,
-        }),
-        updateSupportChannelTopic(role, currentSupportCastMemberMention),
-    ])
-}
-
-async function shoutAboutUpcomingSupportCastMembers(role: Role): Promise<void> {
-    const [nextSupportCastMember, secondNextSupportCastMember] = await Promise.all([
-        fetchSupportCastMemberNWeeksFromNow(1, role.scheduleId),
-        fetchSupportCastMemberNWeeksFromNow(2, role.scheduleId),
-    ])
-    const [nextSupportCastMemberMention, secondNextSupportCastMemberMention] = await Promise.all([
-        fetchSlackMentionByEmail(nextSupportCastMember),
-        fetchSlackMentionByEmail(secondNextSupportCastMember),
-    ])
-
-    await app.client.chat.postMessage({
-        channel: role.channel,
-        text: `*Next week's ${linkifyRoleName(
-            role
-        )}*: ${nextSupportCastMemberMention}. The week after that: ${secondNextSupportCastMemberMention}.`,
-        blocks: [
-            {
-                type: 'section',
-                text: {
-                    type: 'mrkdwn',
-                    text: `*Next week's ${linkifyRoleName(role)}:*\n${nextSupportCastMemberMention}`,
-                },
-            },
-            {
-                type: 'context',
-                elements: [
-                    {
-                        type: 'mrkdwn',
-                        text: `The week after that: ${secondNextSupportCastMemberMention}`,
-                    },
-                ],
-            },
-        ],
-    })
-}
-
-export async function shoutAboutCurrentCast(): Promise<void> {
-    const results = await Promise.allSettled(SUPPORT_SIDEKICK_ROLES.map(shoutAboutCurrentSupportCastMember))
-    for (const result of results) {
-        if (result.status === 'rejected') {
-            captureException(result.reason)
-        }
+    if (args[0] === 'show') {
+        await kudosShow(respond, args.slice(1))
+    } else {
+        await kudosGive(command, respond, args)
     }
-}
-
-export async function shoutAboutUpcomingCast(): Promise<void> {
-    const results = await Promise.allSettled(SUPPORT_SIDEKICK_ROLES.map(shoutAboutUpcomingSupportCastMembers))
-    for (const result of results) {
-        if (result.status === 'rejected') {
-            captureException(result.reason)
-        }
-    }
-}
+})

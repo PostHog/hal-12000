@@ -3,7 +3,8 @@ import '@sentry/tracing' // Importing @sentry/tracing patches the global hub for
 import * as Sentry from '@sentry/node'
 import { scheduleJob } from 'node-schedule'
 
-import { app, shoutAboutCurrentCast, shoutAboutUpcomingCast } from './app'
+import { app } from './app'
+import { shoutAboutCurrentCast, shoutAboutUpcomingCast } from './support'
 
 Sentry.init({
     dsn: process.env.SENTRY_DSN,
