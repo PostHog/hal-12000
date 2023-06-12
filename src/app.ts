@@ -48,10 +48,16 @@ async function shoutAboutCurrentSupportCastMember(role: Role): Promise<void> {
     const text = template
         .replace('$', (isRoleNameGenericName ? 'the ' : '') + linkifyRoleName(role))
         .replace('@', currentSupportCastMemberMention)
-    await app.client.chat.postMessage({
-        channel: role.channel,
-        text,
-    })
+    await Promise.all([
+        app.client.chat.postMessage({
+            channel: role.channel,
+            text,
+        }),
+        app.client.channels.setTopic({
+            channel: role.channel.replace('team', 'support'), // e.g. #team-pipeline -> #support-pipeline
+            topic: `Current ${role.name}: ${currentSupportCastMemberMention}`,
+        }),
+    ])
 }
 
 async function shoutAboutUpcomingSupportCastMembers(role: Role): Promise<void> {
