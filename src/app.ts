@@ -38,7 +38,7 @@ app.error(async (error) => {
     captureException(error.original || error)
 })
 
-async function updateTopic(role: Role, supportCastMemberMention: string): Promise<void> {
+async function updateSupportChannelTopic(role: Role, supportCastMemberMention: string): Promise<void> {
     const channelsResponse = await app.client.conversations.list({
         types: 'public_channel',
         exclude_archived: true,
@@ -70,7 +70,19 @@ async function shoutAboutCurrentSupportCastMember(role: Role): Promise<void> {
     const currentSupportCastMember = await fetchSupportCastMemberNWeeksFromNow(0, role.scheduleId)
     const currentSupportCastMemberMention = await fetchSlackMentionByEmail(currentSupportCastMember)
 
-    await Promise.all([updateTopic(role, currentSupportCastMemberMention)])
+    const template = `*It's your time to shine as $, @!*`
+    // Don't include "the" for custom names such as "Luigi", only for generic names such as "the Support Sidekick"
+    const isRoleNameGenericName = role.name.includes('Hero') || role.name.includes('Sidekick')
+    const text = template
+        .replace('$', (isRoleNameGenericName ? 'the ' : '') + linkifyRoleName(role))
+        .replace('@', currentSupportCastMemberMention)
+    await Promise.all([
+        app.client.chat.postMessage({
+            channel: role.channel,
+            text,
+        }),
+        updateSupportChannelTopic(role, currentSupportCastMemberMention),
+    ])
 }
 
 async function shoutAboutUpcomingSupportCastMembers(role: Role): Promise<void> {
