@@ -20,18 +20,19 @@ export async function kudosShow(respond: RespondFn, args: string[]): Promise<voi
         list = list.gte('created_at', DateTime.now().minus({ days: daysPast }).toISO())
     }
     const resolvedList = (await list).data!
-    await respond(
-        `💖 *${resolvedList.length} kudos given in ${
+    await respond({
+        text: `💖 *${resolvedList.length || 'No'} kudos given in ${
             daysPast ? `the past ${daysPast} day${daysPast === 1 ? '' : 's'}` : 'all of history'
-        }*:\n${resolvedList
+        }${resolvedList.length ? ':' : ''}*\n${resolvedList
             ?.map(
                 (kudos) =>
                     `👏 to <@${kudos.target_slack_user_id}> from <@${kudos.source_slack_user_id}> (${DateTime.fromISO(
                         kudos.created_at
                     ).toLocaleString(DateTime.DATETIME_MED)}): ${kudos.reason}`
             )
-            .join('\n')}`
-    )
+            .join('\n')}`,
+        response_type: 'in_channel',
+    })
 }
 
 export async function kudosGive(command: SlashCommand, respond: RespondFn, args: string[]): Promise<void> {
@@ -40,14 +41,14 @@ export async function kudosGive(command: SlashCommand, respond: RespondFn, args:
 
     if (!targetUserId) {
         await respond({
-            text: `⚠️ You have to mention the person you're giving kudos to at the start of the message!`,
+            text: `⚠️ You have to mention the person you're giving kudos to at the start of the message, <@${command.user_id}>!`,
             response_type: 'ephemeral',
         })
         return
     }
     if (targetUserId === command.user_id) {
         await respond({
-            text: `🙅 You can't just applaud yourself shamelessly like that!`,
+            text: `🙅 You can't just applaud yourself shamelessly like that, <@${command.user_id}>!`,
             response_type: 'ephemeral',
         })
         return
@@ -55,7 +56,7 @@ export async function kudosGive(command: SlashCommand, respond: RespondFn, args:
     const reason = args.slice(1).join(' ')
     if (!reason) {
         await respond({
-            text: `⚠️ You have to include a reason for giving kudos!`,
+            text: `⚠️ You have to include a reason for giving kudos, <@${command.user_id}>!`,
             response_type: 'ephemeral',
         })
         return
@@ -70,6 +71,7 @@ export async function kudosGive(command: SlashCommand, respond: RespondFn, args:
     })
 
     await respond({
-        text: `💖 *Kudos given to ${targetUserMention} by <@${command.user_id}|${command.user_name}>*:\n👉 ${reason}`,
+        text: `💖 *Kudos given to ${targetUserMention}*:\n👉 ${reason}`,
+        response_type: 'in_channel',
     })
 }
