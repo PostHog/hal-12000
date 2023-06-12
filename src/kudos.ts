@@ -28,7 +28,7 @@ export async function kudosShow(respond: RespondFn, args: string[]): Promise<voi
                 (kudos) =>
                     `👏 to <@${kudos.target_slack_user_id}> from <@${kudos.source_slack_user_id}> (${DateTime.fromISO(
                         kudos.created_at
-                    ).toFormat('dd yyyy MMM-dd HH:mm')}): ${kudos.reason}`
+                    ).toLocaleString(DateTime.DATETIME_MED)}): ${kudos.reason}`
             )
             .join('\n')}`
     )
