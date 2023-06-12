@@ -38,16 +38,39 @@ app.error(async (error) => {
     captureException(error.original || error)
 })
 
+async function updateTopic(role: Role, supportCastMemberMention: string): Promise<void> {
+    const channelsResponse = await app.client.conversations.list({
+        types: 'public_channel',
+        exclude_archived: true,
+        limit: 1000,
+    })
+    if (channelsResponse.error) {
+        throw channelsResponse.error
+    }
+    const supportChannelName = role.channel.replace('team', 'support') // e.g. team-pipeline -> support-pipeline
+    const channel = channelsResponse.channels?.find((channel) => channel.name === supportChannelName)
+    if (!channel?.id) {
+        throw new Error(`Channel #${supportChannelName} wasn't found in the first page of results`)
+    }
+    if (!channel.is_member) {
+        await app.client.conversations.join({
+            channel: channel.id,
+        })
+    }
+    const upToDateTopic = `${role.name}: ${supportCastMemberMention}`
+    if (channel.topic !== upToDateTopic) {
+        await app.client.conversations.setTopic({
+            channel: channel.id,
+            topic: `Current ${role.name}: ${supportCastMemberMention}`,
+        })
+    }
+}
+
 async function shoutAboutCurrentSupportCastMember(role: Role): Promise<void> {
     const currentSupportCastMember = await fetchSupportCastMemberNWeeksFromNow(0, role.scheduleId)
     const currentSupportCastMemberMention = await fetchSlackMentionByEmail(currentSupportCastMember)
 
-    await Promise.all([
-        app.client.conversations.setTopic({
-            channel: role.channel.replace('team', 'support'), // e.g. #team-pipeline -> #support-pipeline
-            topic: `Current ${role.name}: ${currentSupportCastMemberMention}`,
-        }),
-    ])
+    await Promise.all([updateTopic(role, currentSupportCastMemberMention)])
 }
 
 async function shoutAboutUpcomingSupportCastMembers(role: Role): Promise<void> {
@@ -87,9 +110,19 @@ async function shoutAboutUpcomingSupportCastMembers(role: Role): Promise<void> {
 }
 
 export async function shoutAboutCurrentCast(): Promise<void> {
-    await Promise.all(SUPPORT_SIDEKICK_ROLES.map(shoutAboutCurrentSupportCastMember))
+    const results = await Promise.allSettled(SUPPORT_SIDEKICK_ROLES.map(shoutAboutCurrentSupportCastMember))
+    for (const result of results) {
+        if (result.status === 'rejected') {
+            captureException(result.reason)
+        }
+    }
 }
 
 export async function shoutAboutUpcomingCast(): Promise<void> {
-    await Promise.all(SUPPORT_SIDEKICK_ROLES.map(shoutAboutUpcomingSupportCastMembers))
+    const results = await Promise.allSettled(SUPPORT_SIDEKICK_ROLES.map(shoutAboutUpcomingSupportCastMembers))
+    for (const result of results) {
+        if (result.status === 'rejected') {
+            captureException(result.reason)
+        }
+    }
 }
