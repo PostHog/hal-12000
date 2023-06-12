@@ -29,6 +29,10 @@ async function fetchSlackMentionByEmail(userToFind: { name: string; email: strin
     return userFound?.id ? `<@${userFound.id}>` : userToFind.name
 }
 
+function linkifyRoleName(role: Role): string {
+    return `<https://posthog.pagerduty.com/schedules#${role.scheduleId}|${role.name}>`
+}
+
 // eslint-disable-next-line @typescript-eslint/require-await
 app.error(async (error) => {
     captureException(error.original || error)
@@ -42,11 +46,7 @@ async function shoutAboutCurrentSupportCastMember(role: Role): Promise<void> {
     // Don't include "the" for custom names such as "Luigi", only for generic names such as "the Support Sidekick"
     const isRoleNameGenericName = role.name.includes('Hero') || role.name.includes('Sidekick')
     const text = template
-        .replace(
-            '$',
-            (isRoleNameGenericName ? 'the ' : '') +
-                `<https://posthog.pagerduty.com/schedules#${role.scheduleId}|${role.name}>`
-        )
+        .replace('$', (isRoleNameGenericName ? 'the ' : '') + linkifyRoleName(role))
         .replace('@', currentSupportCastMemberMention)
     await app.client.chat.postMessage({
         channel: role.channel,
@@ -66,13 +66,15 @@ async function shoutAboutUpcomingSupportCastMembers(role: Role): Promise<void> {
 
     await app.client.chat.postMessage({
         channel: role.channel,
-        text: `*Next week's ${role.name}*: ${nextSupportCastMemberMention}. The week after that: ${secondNextSupportCastMemberMention}.`,
+        text: `*Next week's ${linkifyRoleName(
+            role
+        )}*: ${nextSupportCastMemberMention}. The week after that: ${secondNextSupportCastMemberMention}.`,
         blocks: [
             {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: `*Next week's ${role.name}:*\n${nextSupportCastMemberMention}`,
+                    text: `*Next week's ${linkifyRoleName(role)}:*\n${nextSupportCastMemberMention}`,
                 },
             },
             {
