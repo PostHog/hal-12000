@@ -4,7 +4,15 @@ import { DateTime } from 'luxon'
 
 import { database } from './data'
 
-export async function kudosShow(respond: RespondFn, args: string[]): Promise<void> {
+export async function kudosShow(command: SlashCommand, respond: RespondFn, args: string[]): Promise<void> {
+    if (DateTime.now().weekday !== 1) {
+        await respond({
+            text: `⚠️ Kudos can only be checked on Mondays, <@${command.user_id}>!`,
+            response_type: 'ephemeral',
+        })
+        return
+    }
+
     let list = database.from('kudos').select('*').order('created_at', { ascending: false })
     const daysPastArg = args[0]
     let daysPast: number | null = null

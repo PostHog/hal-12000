@@ -44,7 +44,7 @@ app.command('/kudos', async ({ command, ack, respond }) => {
     const args = command.text.trim().split(' ').filter(Boolean)
 
     if (args[0] === 'show') {
-        await kudosShow(respond, args.slice(1))
+        await kudosShow(command, respond, args.slice(1))
     } else {
         await kudosGive(command, respond, args)
     }
