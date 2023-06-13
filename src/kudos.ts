@@ -31,7 +31,7 @@ export async function kudosShow(respond: RespondFn, args: string[]): Promise<voi
                     ).toLocaleString(DateTime.DATETIME_MED)}): ${kudos.reason}`
             )
             .join('\n')}`,
-        response_type: 'in_channel',
+        response_type: 'ephemeral',
     })
 }
 
@@ -72,6 +72,6 @@ export async function kudosGive(command: SlashCommand, respond: RespondFn, args:
 
     await respond({
         text: `💖 *Kudos given to ${targetUserMention}*:\n👉 ${reason}`,
-        response_type: 'in_channel',
+        response_type: 'ephemeral',
     })
 }
