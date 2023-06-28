@@ -29,7 +29,7 @@ async function shoutAboutOnCall(mode: 'current' | 'upcoming'): Promise<void> {
         )
     )
 
-    const text = `*${TITLES[Math.floor(Math.random() * TITLES.length)]} on call ${
+    const text = `*${TITLES[Math.floor(Math.random() * TITLES.length)]} <http://runbooks/oncall/|on call> ${
         mode === 'current' ? 'this' : 'next'
     } week:*
 ${currentOnCallSchedulesWithMentions
