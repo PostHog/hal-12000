@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon'
+
 import { app, fetchSlackMentionByEmail } from './app'
 import { fetchPersonOnCallNWeeksFromNow, fetchSchedule, PagerDutySchedule } from './pagerduty'
 
@@ -32,22 +34,10 @@ async function shoutAboutOnCall(mode: 'current' | 'upcoming'): Promise<void> {
     } week:*
 ${currentOnCallSchedulesWithMentions
     .map(([schedule, mention]) => {
-        const start = new Date(schedule.schedule_layers[0].start)
-        const end = new Date(schedule.schedule_layers[0].end)
-        const startDisplay = Intl.DateTimeFormat('en-GB', {
-            timeZone: schedule.time_zone,
-            hour: 'numeric',
-            minute: 'numeric',
-        })
-            .format(start)
-            .replace(':', '')
-        const endDisplay = Intl.DateTimeFormat('en-GB', {
-            timeZone: schedule.time_zone,
-            hour: 'numeric',
-            minute: 'numeric',
-        })
-            .format(end)
-            .replace(':', '')
+        const start = DateTime.fromISO(schedule.schedule_layers[0].rotation_virtual_start, { zone: schedule.time_zone })
+        const end = start.plus({ hour: 8 })
+        const startDisplay = start.toFormat('HHmm')
+        const endDisplay = end.toFormat('HHmm')
         const timeZoneDisplay = shortTimeZone(schedule.time_zone)
         return `<${schedule.html_url}|${schedule.name}> (${startDisplay} to ${endDisplay} ${timeZoneDisplay}) – ${mention}`
     })

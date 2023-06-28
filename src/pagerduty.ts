@@ -20,8 +20,8 @@ export interface PagerDutySchedule {
     schedule_layers: {
         id: string
         name: string
-        start: string
-        end: string
+        rotation_virtual_start: string
+        rotation_turn_length_seconds: number
     }[]
 }
 
@@ -34,15 +34,15 @@ const pd = pdApi({ token: process.env.PAGERDUTY_TOKEN })
  */
 async function fetchPersonOnCallAt(dateTime: DateTime, scheduleId: string): Promise<PagerDutyUser | null> {
     const requestData = {
+        // The range is a day long so that this works with layers that only cover part of a day
         since: dateTime.toISO(),
-        // `until` to be later than `since`, otherwise the range is treated as empty
-        until: dateTime.plus({ second: 1 }).toISO(),
+        until: dateTime.plus({ day: 1 }).toISO(),
     }
     let data: { users: PagerDutyUser[] }
     try {
         data = (await pd.get(`/schedules/${scheduleId}/users`, { data: requestData })).data
     } catch {
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await new Promise((resolve) => setTimeout(resolve, 500)) // Retry if PagerDuty is unhappy
         data = (await pd.get(`/schedules/${scheduleId}/users`, { data: requestData })).data
     }
     if (!data.users.length) {
