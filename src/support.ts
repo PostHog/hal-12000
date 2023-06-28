@@ -1,8 +1,6 @@
-import { captureException } from '@sentry/node'
-
 import { app, fetchSlackMentionByEmail, linkifyRoleName } from './app'
-import { fetchSupportCastMemberNWeeksFromNow } from './pagerduty'
-import { Role, SUPPORT_SIDEKICK_ROLES } from './roles'
+import { fetchPersonOnCallNWeeksFromNow } from './pagerduty'
+import type { Role } from './roles'
 
 async function updateSupportChannelTopic(role: Role, supportCastMemberMention: string): Promise<void> {
     const channelsResponse = await app.client.conversations.list({
@@ -32,8 +30,8 @@ async function updateSupportChannelTopic(role: Role, supportCastMemberMention: s
     }
 }
 
-async function shoutAboutCurrentSupportCastMember(role: Role): Promise<void> {
-    const currentSupportCastMember = await fetchSupportCastMemberNWeeksFromNow(0, role.scheduleId)
+export async function shoutAboutCurrentSupportCastMember(role: Role): Promise<void> {
+    const currentSupportCastMember = await fetchPersonOnCallNWeeksFromNow(0, role.scheduleId)
     const currentSupportCastMemberMention = await fetchSlackMentionByEmail(currentSupportCastMember)
 
     const template = `*It's your time to shine as $, @!*`
@@ -51,10 +49,10 @@ async function shoutAboutCurrentSupportCastMember(role: Role): Promise<void> {
     ])
 }
 
-async function shoutAboutUpcomingSupportCastMembers(role: Role): Promise<void> {
+export async function shoutAboutUpcomingSupportCastMembers(role: Role): Promise<void> {
     const [nextSupportCastMember, secondNextSupportCastMember] = await Promise.all([
-        fetchSupportCastMemberNWeeksFromNow(1, role.scheduleId),
-        fetchSupportCastMemberNWeeksFromNow(2, role.scheduleId),
+        fetchPersonOnCallNWeeksFromNow(1, role.scheduleId),
+        fetchPersonOnCallNWeeksFromNow(2, role.scheduleId),
     ])
     const [nextSupportCastMemberMention, secondNextSupportCastMemberMention] = await Promise.all([
         fetchSlackMentionByEmail(nextSupportCastMember),
@@ -85,22 +83,4 @@ async function shoutAboutUpcomingSupportCastMembers(role: Role): Promise<void> {
             },
         ],
     })
-}
-
-export async function shoutAboutCurrentCast(): Promise<void> {
-    const results = await Promise.allSettled(SUPPORT_SIDEKICK_ROLES.map(shoutAboutCurrentSupportCastMember))
-    for (const result of results) {
-        if (result.status === 'rejected') {
-            captureException(result.reason)
-        }
-    }
-}
-
-export async function shoutAboutUpcomingCast(): Promise<void> {
-    const results = await Promise.allSettled(SUPPORT_SIDEKICK_ROLES.map(shoutAboutUpcomingSupportCastMembers))
-    for (const result of results) {
-        if (result.status === 'rejected') {
-            captureException(result.reason)
-        }
-    }
 }

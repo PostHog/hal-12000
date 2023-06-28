@@ -11,6 +11,20 @@ export interface PagerDutyUser {
     html_url: string
 }
 
+/** Serialized PagerDuty schedule. This is only a partial representation, fields irrelevant to the bot are omitted. */
+export interface PagerDutySchedule {
+    id: string
+    name: string
+    time_zone: string
+    html_url: string
+    schedule_layers: {
+        id: string
+        name: string
+        start: string
+        end: string
+    }[]
+}
+
 const pd = pdApi({ token: process.env.PAGERDUTY_TOKEN })
 
 /** Fetch who is/will be support at a given moment in time.
@@ -18,7 +32,7 @@ const pd = pdApi({ token: process.env.PAGERDUTY_TOKEN })
  * It takes one request to fetch each user, because if multiple users are fetched at a time, there's no guarantee
  * they will be returned in the order of the support rotation.
  */
-async function fetchSupportCastMemberAtDateTime(dateTime: DateTime, scheduleId: string): Promise<PagerDutyUser | null> {
+async function fetchPersonOnCallAt(dateTime: DateTime, scheduleId: string): Promise<PagerDutyUser | null> {
     const requestData = {
         since: dateTime.toISO(),
         // `until` to be later than `since`, otherwise the range is treated as empty
@@ -37,6 +51,10 @@ async function fetchSupportCastMemberAtDateTime(dateTime: DateTime, scheduleId: 
     return data.users[0] || null
 }
 
-export function fetchSupportCastMemberNWeeksFromNow(n: number, scheduleId: string): Promise<PagerDutyUser | null> {
-    return fetchSupportCastMemberAtDateTime(DateTime.utc().plus({ week: n }), scheduleId)
+export function fetchPersonOnCallNWeeksFromNow(n: number, scheduleId: string): Promise<PagerDutyUser | null> {
+    return fetchPersonOnCallAt(DateTime.utc().plus({ week: n }), scheduleId)
+}
+
+export function fetchSchedule(scheduleId: string): Promise<PagerDutySchedule> {
+    return pd.get(`/schedules/${scheduleId}`).then((response) => response.data.schedule)
 }
