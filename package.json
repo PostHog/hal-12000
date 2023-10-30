@@ -5,7 +5,7 @@
     "author": "PostHog Inc.",
     "license": "MIT",
     "engines": {
-        "node": ">=16"
+        "node": "18.x"
     },
     "scripts": {
         "start:dev": "ts-node-dev --exit-child src/index.ts",
