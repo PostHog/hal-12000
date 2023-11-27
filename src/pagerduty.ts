@@ -51,8 +51,9 @@ async function fetchPersonOnCallAt(dateTime: DateTime, scheduleId: string): Prom
     return data.users[0] || null
 }
 
-export function fetchPersonOnCallNWeeksFromNow(n: number, scheduleId: string): Promise<PagerDutyUser | null> {
-    return fetchPersonOnCallAt(DateTime.utc().plus({ week: n }), scheduleId)
+/* 1 day is added so that checking on Monday morning CET results in correct results for people in PST */
+export function fetchPersonOnCallNWeeksPlusDayFromNow(n: number, scheduleId: string): Promise<PagerDutyUser | null> {
+    return fetchPersonOnCallAt(DateTime.utc().plus({ week: n, day: 1 }), scheduleId)
 }
 
 export function fetchSchedule(scheduleId: string): Promise<PagerDutySchedule> {

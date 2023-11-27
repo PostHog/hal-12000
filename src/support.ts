@@ -1,5 +1,5 @@
 import { app, fetchSlackMentionByEmail, linkifyRoleName } from './app'
-import { fetchPersonOnCallNWeeksFromNow } from './pagerduty'
+import { fetchPersonOnCallNWeeksPlusDayFromNow } from './pagerduty'
 import type { Role } from './roles'
 
 async function updateSupportChannelTopic(role: Role, supportCastMemberMention: string): Promise<void> {
@@ -31,7 +31,7 @@ async function updateSupportChannelTopic(role: Role, supportCastMemberMention: s
 }
 
 export async function shoutAboutCurrentSupportCastMember(role: Role): Promise<void> {
-    const currentSupportCastMember = await fetchPersonOnCallNWeeksFromNow(0, role.scheduleId)
+    const currentSupportCastMember = await fetchPersonOnCallNWeeksPlusDayFromNow(0, role.scheduleId)
     const currentSupportCastMemberMention = await fetchSlackMentionByEmail(currentSupportCastMember)
 
     const template = `*It's your time to shine as $, @!*`
@@ -51,8 +51,8 @@ export async function shoutAboutCurrentSupportCastMember(role: Role): Promise<vo
 
 export async function shoutAboutUpcomingSupportCastMembers(role: Role): Promise<void> {
     const [nextSupportCastMember, secondNextSupportCastMember] = await Promise.all([
-        fetchPersonOnCallNWeeksFromNow(1, role.scheduleId),
-        fetchPersonOnCallNWeeksFromNow(2, role.scheduleId),
+        fetchPersonOnCallNWeeksPlusDayFromNow(1, role.scheduleId),
+        fetchPersonOnCallNWeeksPlusDayFromNow(2, role.scheduleId),
     ])
     const [nextSupportCastMemberMention, secondNextSupportCastMemberMention] = await Promise.all([
         fetchSlackMentionByEmail(nextSupportCastMember),

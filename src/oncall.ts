@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 
 import { app, fetchSlackMentionByEmail } from './app'
-import { fetchPersonOnCallNWeeksFromNow, fetchSchedule, PagerDutySchedule } from './pagerduty'
+import { fetchPersonOnCallNWeeksPlusDayFromNow, fetchSchedule, PagerDutySchedule } from './pagerduty'
 
 const scheduleIds: string[] = process.env.ON_CALL_SCHEDULE_IDS?.split(',') || []
 
@@ -22,7 +22,7 @@ async function shoutAboutOnCall(mode: 'current' | 'upcoming'): Promise<void> {
             async (scheduleId) =>
                 [
                     await fetchSchedule(scheduleId),
-                    await fetchPersonOnCallNWeeksFromNow(mode === 'current' ? 0 : 1, scheduleId).then(
+                    await fetchPersonOnCallNWeeksPlusDayFromNow(mode === 'current' ? 0 : 1, scheduleId).then(
                         async (person) => await fetchSlackMentionByEmail(person)
                     ),
                 ] as [PagerDutySchedule, string]
