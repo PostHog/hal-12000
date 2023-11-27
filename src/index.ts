@@ -1,7 +1,7 @@
 import '@sentry/tracing' // Importing @sentry/tracing patches the global hub for tracing to work.
 
 import * as Sentry from '@sentry/node'
-import { scheduleJob } from 'node-schedule'
+import { RecurrenceRule, scheduleJob } from 'node-schedule'
 
 import { app } from './app'
 import { shoutAboutCurrentOnCall, shoutAboutUpcomingOnCall } from './oncall'
@@ -33,9 +33,20 @@ export async function shoutAboutUpcomingCast(): Promise<void> {
     await shoutAboutUpcomingOnCall()
 }
 
-// Every Monday at 6:00 AM UTC (same time as the Time Off message in #general)
-scheduleJob('0 6 * * 1', shoutAboutCurrentCast)
-// Every Wednesday at 6:00 AM UTC (same time as the Time Off message in #general)
-scheduleJob('0 6 * * 3', shoutAboutUpcomingCast)
+// Every Monday at 7:00 AM London time (same time as the Time Off message in #general)
+const currentCastRule = new RecurrenceRule()
+currentCastRule.dayOfWeek = 1
+currentCastRule.hour = 7
+currentCastRule.minute = 0
+currentCastRule.tz = 'Europe/London'
+scheduleJob(currentCastRule, shoutAboutCurrentCast)
+
+// Every Wednesday at 7:00 AM London time (same time as the Time Off message in #general)
+const upcomingCastRule = new RecurrenceRule()
+upcomingCastRule.dayOfWeek = 3
+upcomingCastRule.hour = 7
+upcomingCastRule.minute = 0
+upcomingCastRule.tz = 'Europe/London'
+scheduleJob(upcomingCastRule, shoutAboutUpcomingCast)
 
 void app.start()
