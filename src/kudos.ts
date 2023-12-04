@@ -19,11 +19,11 @@ export async function kudosShow(command: SlashCommand, respond: RespondFn, args:
         }
         list = list.gte('created_at', DateTime.now().minus({ days: daysPast }).toISO())
     }
-    const resolvedList = (await list).data!
+    const resolvedList = (await list).data
     await respond({
-        text: `💖 *${resolvedList.length || 'No'} kudos given in ${
+        text: `💖 *${resolvedList?.length || 'No'} kudos given in ${
             daysPast ? `the past ${daysPast} day${daysPast === 1 ? '' : 's'}` : 'all of history'
-        }${resolvedList.length ? ':' : ''}*\n${resolvedList
+        }${resolvedList?.length ? ':' : ''}*\n${resolvedList
             ?.map(
                 (kudos) =>
                     `👏 to <@${kudos.target_slack_user_id}> from <@${kudos.source_slack_user_id}> (${DateTime.fromISO(
