@@ -5,7 +5,7 @@ import { RecurrenceRule, scheduleJob } from 'node-schedule'
 
 import { app } from './app'
 import { shoutAboutCurrentOnCall, shoutAboutUpcomingOnCall } from './oncall'
-import { SUPPORT_SIDEKICK_ROLES } from './roles'
+import { SUPPORT_HERO_ROLES } from './roles'
 import { shoutAboutCurrentSupportCastMember, shoutAboutUpcomingSupportCastMembers } from './support'
 
 Sentry.init({
@@ -14,7 +14,7 @@ Sentry.init({
 })
 
 export async function shoutAboutCurrentCast(): Promise<void> {
-    const results = await Promise.allSettled([...SUPPORT_SIDEKICK_ROLES.map(shoutAboutCurrentSupportCastMember)])
+    const results = await Promise.allSettled([...SUPPORT_HERO_ROLES.map(shoutAboutCurrentSupportCastMember)])
     for (const result of results) {
         if (result.status === 'rejected') {
             Sentry.captureException(result.reason)
@@ -24,7 +24,7 @@ export async function shoutAboutCurrentCast(): Promise<void> {
 }
 
 export async function shoutAboutUpcomingCast(): Promise<void> {
-    const results = await Promise.allSettled([...SUPPORT_SIDEKICK_ROLES.map(shoutAboutUpcomingSupportCastMembers)])
+    const results = await Promise.allSettled([...SUPPORT_HERO_ROLES.map(shoutAboutUpcomingSupportCastMembers)])
     for (const result of results) {
         if (result.status === 'rejected') {
             Sentry.captureException(result.reason)

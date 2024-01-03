@@ -35,8 +35,8 @@ export async function shoutAboutCurrentSupportCastMember(role: Role): Promise<vo
     const currentSupportCastMemberMention = await fetchSlackMentionByEmail(currentSupportCastMember)
 
     const template = `*It's your time to shine as $, @!*`
-    // Don't include "the" for custom names such as "Luigi", only for generic names such as "the Support Sidekick"
-    const isRoleNameGenericName = role.name.includes('Hero') || role.name.includes('Sidekick')
+    // Don't include "the" for custom names such as "Luigi", only for generic names such as "the Support Hero"
+    const isRoleNameGenericName = role.name.includes('Hero') || role.name.includes('Sidekick') // "Sidekick" is legacy
     const text = template
         .replace('$', (isRoleNameGenericName ? 'the ' : '') + linkifyRoleName(role))
         .replace('@', currentSupportCastMemberMention)
