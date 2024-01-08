@@ -39,7 +39,10 @@ ${currentOnCallSchedulesWithMentions
         const startDisplay = start.toFormat('HHmm')
         const endDisplay = end.toFormat('HHmm')
         const timeZoneDisplay = shortTimeZone(schedule.time_zone)
-        return `<${schedule.html_url}|${schedule.name}> (${startDisplay} to ${endDisplay} ${timeZoneDisplay}) – ${mention}`
+        return `<${schedule.html_url}|${schedule.name.replace(
+            'On-call: ',
+            ''
+        )}> (${startDisplay} to ${endDisplay} ${timeZoneDisplay}) – ${mention}`
     })
     .join('\n')}`
     await app.client.chat.postMessage({
