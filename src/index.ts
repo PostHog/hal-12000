@@ -14,23 +14,27 @@ Sentry.init({
 })
 
 export async function shoutAboutCurrentCast(): Promise<void> {
-    const results = await Promise.allSettled([...SUPPORT_HERO_ROLES.map(shoutAboutCurrentSupportCastMember)])
+    const results = await Promise.allSettled([
+        ...SUPPORT_HERO_ROLES.map(shoutAboutCurrentSupportCastMember),
+        shoutAboutCurrentOnCall(),
+    ])
     for (const result of results) {
         if (result.status === 'rejected') {
             Sentry.captureException(result.reason)
         }
     }
-    await shoutAboutCurrentOnCall()
 }
 
 export async function shoutAboutUpcomingCast(): Promise<void> {
-    const results = await Promise.allSettled([...SUPPORT_HERO_ROLES.map(shoutAboutUpcomingSupportCastMembers)])
+    const results = await Promise.allSettled([
+        ...SUPPORT_HERO_ROLES.map(shoutAboutUpcomingSupportCastMembers),
+        shoutAboutUpcomingOnCall(),
+    ])
     for (const result of results) {
         if (result.status === 'rejected') {
             Sentry.captureException(result.reason)
         }
     }
-    await shoutAboutUpcomingOnCall()
 }
 
 // Every Monday at 7:00 AM London time (same time as the Time Off message in #general)

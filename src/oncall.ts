@@ -1,16 +1,14 @@
 import { DateTime } from 'luxon'
 
 import { app, fetchSlackMentionByEmail } from './app'
-import { fetchPersonOnCallNWeeksPlusDayFromNow, fetchSchedule, PagerDutySchedule } from './pagerduty'
+import { fetchPersonOnCallNWeeksFromNow, fetchSchedule, PagerDutySchedule } from './pagerduty'
 
-const scheduleIds: string[] = process.env.ON_CALL_SCHEDULE_IDS?.split(',') || []
+const { ON_CALL_SCHEDULE_IDS, WEEKEND_ON_CALL_SCHEDULE_ID } = process.env
 
-function shortTimeZone(timeZone: string): string {
-    return (
-        new Intl.DateTimeFormat('en-US', { timeZoneName: 'short', timeZone })
-            .formatToParts()
-            .find(({ type }) => type === 'timeZoneName')?.value || 'unknown TZ'
-    )
+const ALL_SCHEDULE_IDS_WITH_WEEKDAYS: [id: string, weekday: 1 | 2 | 3 | 4 | 5 | 6 | 7][] =
+    ON_CALL_SCHEDULE_IDS?.split(',')?.map((id) => [id, 1] as [string, 1]) || []
+if (WEEKEND_ON_CALL_SCHEDULE_ID) {
+    ALL_SCHEDULE_IDS_WITH_WEEKDAYS.push([WEEKEND_ON_CALL_SCHEDULE_ID, 6])
 }
 
 /** "${title} on call this/next week" */
@@ -18,11 +16,11 @@ const TITLES = ['Pouring water', 'Fighting fires', 'Saving the day', 'Standing b
 
 async function shoutAboutOnCall(mode: 'current' | 'upcoming'): Promise<void> {
     const currentOnCallSchedulesWithMentions = await Promise.all(
-        scheduleIds.map(
-            async (scheduleId) =>
+        ALL_SCHEDULE_IDS_WITH_WEEKDAYS.map(
+            async ([scheduleId, weekday]) =>
                 [
                     await fetchSchedule(scheduleId),
-                    await fetchPersonOnCallNWeeksPlusDayFromNow(mode === 'current' ? 0 : 1, scheduleId).then(
+                    await fetchPersonOnCallNWeeksFromNow(mode === 'current' ? 0 : 1, scheduleId, weekday).then(
                         async (person) => await fetchSlackMentionByEmail(person)
                     ),
                 ] as [PagerDutySchedule, string]
@@ -31,18 +29,18 @@ async function shoutAboutOnCall(mode: 'current' | 'upcoming'): Promise<void> {
 
     const text = `*${TITLES[Math.floor(Math.random() * TITLES.length)]} <http://runbooks/oncall/|on call> ${
         mode === 'current' ? 'this' : 'next'
-    } week:*
+    } week (all times UTC):*
 ${currentOnCallSchedulesWithMentions
     .map(([schedule, mention]) => {
+        const isWeekendSchedule = schedule.id === WEEKEND_ON_CALL_SCHEDULE_ID
         const start = DateTime.fromISO(schedule.schedule_layers[0].rotation_virtual_start, { zone: schedule.time_zone })
-        const end = start.plus({ hour: 8 })
-        const startDisplay = start.toFormat('HHmm')
-        const endDisplay = end.toFormat('HHmm')
-        const timeZoneDisplay = shortTimeZone(schedule.time_zone)
-        return `<${schedule.html_url}|${schedule.name.replace(
-            'On-call: ',
-            ''
-        )}> (${startDisplay} to ${endDisplay} ${timeZoneDisplay}) – ${mention}`
+        const end = start.plus({ hour: isWeekendSchedule ? 48 : 8 })
+        const startHourDisplay = start.toUTC().toFormat('HHmm')
+        const endHourDisplay = end.toUTC().toFormat('HHmm')
+        const timeRangesDisplay = isWeekendSchedule
+            ? `_continuous_: Sat ${startHourDisplay} till Mon ${endHourDisplay}`
+            : `${startHourDisplay} till ${endHourDisplay}, Mon-Fri`
+        return `<${schedule.html_url}|${schedule.name.replace('On-call: ', '')}> (${timeRangesDisplay}) – ${mention}`
     })
     .join('\n')}`
     await app.client.chat.postMessage({
