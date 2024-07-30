@@ -7,6 +7,7 @@ import { app } from './app'
 import { shoutAboutCurrentOnCall, shoutAboutUpcomingOnCall } from './oncall'
 import { SUPPORT_HERO_ROLES } from './roles'
 import { shoutAboutCurrentSupportCastMember, shoutAboutUpcomingSupportCastMembers } from './support'
+import { shoutAboutTipOfTheWeek } from './tip-of-the-week'
 
 Sentry.init({
     dsn: process.env.SENTRY_DSN,
@@ -37,7 +38,15 @@ export async function shoutAboutUpcomingCast(): Promise<void> {
     }
 }
 
-// Every Monday at 7:00 AM London time (same time as the Time Off message in #general)
+// Every Monday at 9:00 AM London time, #general (2 hours after the Time Off message in #general)
+const tipOfTheWeekRule = new RecurrenceRule()
+tipOfTheWeekRule.dayOfWeek = 1
+tipOfTheWeekRule.hour = 9
+tipOfTheWeekRule.minute = 0
+tipOfTheWeekRule.tz = 'Europe/London'
+scheduleJob(tipOfTheWeekRule, shoutAboutTipOfTheWeek)
+
+// Every Monday at 7:00 AM London time, #dev (same time as the Time Off message in #general)
 const currentCastRule = new RecurrenceRule()
 currentCastRule.dayOfWeek = 1
 currentCastRule.hour = 7
@@ -45,7 +54,7 @@ currentCastRule.minute = 0
 currentCastRule.tz = 'Europe/London'
 scheduleJob(currentCastRule, shoutAboutCurrentCast)
 
-// Every Wednesday at 7:00 AM London time (same time as the Time Off message in #general)
+// Every Wednesday at 7:00 AM London time, #dev (same time as the Time Off message in #general)
 const upcomingCastRule = new RecurrenceRule()
 upcomingCastRule.dayOfWeek = 3
 upcomingCastRule.hour = 7
