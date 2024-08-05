@@ -6,7 +6,7 @@ type Tip = [headline: string, extraDetail: string]
 const POSTHOG_TIPS: Tip[] = [
     ['The average hedgehog has 7,000 spines, each 2.5 cm (1 in) long.', 'Now you know.'],
     [
-        'A fellow Hoglet did an awesome job, or went out of their way?\nAs a token of appreciation, use the `/kudos @person for <reason>` command!',
+        'A fellow Hoglet did an awesome job, or went out of their way?\nTo give them a token of appreciation, use the `/kudos @person for <reason>` command!',
         'Each kudos gets a mention in the all-hands.',
     ],
     [
