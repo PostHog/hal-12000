@@ -26,23 +26,14 @@ export async function shoutAboutTipOfTheWeek(): Promise<void> {
     const [headline, extraDetail] = getCurrentTipOfTheWeek()
     await app.client.chat.postMessage({
         channel: 'general',
-        text: `*Tip of the week*:\n*${headline}*\n${extraDetail}`,
+        text: `*Tip of the week*:\n*${headline}*\n_${extraDetail}_`,
         blocks: [
             {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: `*Tip of the week:*\n${headline}`,
+                    text: `*Tip of the week:*\n${headline}\n_${extraDetail}_`,
                 },
-            },
-            {
-                type: 'context',
-                elements: [
-                    {
-                        type: 'mrkdwn',
-                        text: extraDetail,
-                    },
-                ],
             },
         ],
     })
