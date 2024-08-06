@@ -26,9 +26,11 @@ export async function kudosShow(command: SlashCommand, respond: RespondFn, args:
         }${resolvedList?.length ? ':' : ''}*\n${resolvedList
             ?.map(
                 (kudos) =>
-                    `👏 to <@${kudos.target_slack_user_id}> from <@${kudos.source_slack_user_id}> (${DateTime.fromISO(
-                        kudos.created_at
-                    ).toLocaleString(DateTime.DATETIME_MED)}): ${kudos.reason}`
+                    `- to <@${kudos.target_slack_user_id}> from <@${
+                        kudos.source_slack_user_id
+                    }> for ${kudos.reason.replace(/^for /, '')} (${DateTime.fromISO(kudos.created_at).toLocaleString(
+                        DateTime.DATE_MED
+                    )})`
             )
             .join('\n')}`,
         response_type: 'ephemeral',
