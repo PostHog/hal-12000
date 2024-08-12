@@ -11,9 +11,9 @@ const POSTHOG_TIPS: Tip[] = [
     ],
     [
         `Why's PostHog called PostHog?\n` +
-            `"Post" refers to _ex post facto_ (after the fact) analysis, which is facilitated by autocapture (whereas custom events must be instrumented _ex ante_, before the fact). ` +
-            `"Hog" is just because a group of hedgehogs is called an _array_ of hedgehogs, which is great.`,
-        "It's *not* about _posting_ any _hogs_.",
+            `"Post" refers to _ex post facto_ (after the fact) analysis, which is facilitated by autocapture (whereas custom events must be instrumented _ex ante_, before the fact).\n` +
+            `"Hog" is just because the collective noun for a group of hedgehogs is "array", which is great.`,
+        "It's NOT about _posting_ any _hogs_.",
     ],
 ]
 
