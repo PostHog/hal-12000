@@ -16,7 +16,7 @@ const POSTHOG_TIPS: Tip[] = [
         "It's NOT about _posting_ any _hogs_.",
     ],
     [
-        "The original version of the PostHog logo was drawn by James Hawkins. It is affectionately known as <https://res.cloudinary.com/dmukukwp6/image/upload/v1710055416/posthog.com/contents/images/blog/drawing-hedgehogs/hairy-thumb-logo.jpeg|the hairy thumb>", "Lottie joined shortly after"
+        "The original version of the PostHog logo was drawn by James Hawkins. It is affectionately known as <https://res.cloudinary.com/dmukukwp6/image/upload/v1710055416/posthog.com/contents/images/blog/drawing-hedgehogs/hairy-thumb-logo.jpeg|the hairy thumb>", "Lottie joined shortly after."
     ]
 ]
 
