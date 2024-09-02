@@ -15,6 +15,9 @@ const POSTHOG_TIPS: Tip[] = [
             `"Hog" is just because the collective noun for a group of hedgehogs is "array", which is great.`,
         "It's NOT about _posting_ any _hogs_.",
     ],
+    [
+        "The original version of the PostHog logo was drawn by James Hawkins. It is affectionately known as <https://res.cloudinary.com/dmukukwp6/image/upload/v1710055416/posthog.com/contents/images/blog/drawing-hedgehogs/hairy-thumb-logo.jpeg|the hairy thumb>", "Lottie joined shortly after"
+    ]
 ]
 
 function getCurrentTipOfTheWeek(): Tip {
