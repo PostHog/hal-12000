@@ -20,8 +20,8 @@ const POSTHOG_TIPS: Tip[] = [
         "Lottie joined shortly after this attempt at artistry."
     ],
     [
-        "The first version of Max AI built during the Aruba hackathon hallucinated a character called Hoge, claiming that that was the name of our mascot",
-        "Just like _Fight Club_ we do not talk about Hoge"
+        "The initial version of Max AI – built during the Aruba hackathon – hallucinated a character called Hoge, claiming that that was the name of our mascot.",
+        "The first rule of Hoge is: we do not talk about Hoge."
     ]
 ]
 
