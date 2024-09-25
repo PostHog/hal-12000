@@ -22,6 +22,10 @@ const POSTHOG_TIPS: Tip[] = [
     [
         "The initial version of Max AI – built during the Aruba hackathon – hallucinated a character called Hoge, claiming that that was the name of our mascot.",
         "The first rule of Hoge is: we do not talk about Hoge."
+    ],
+    [
+        "Debugging a customer issue? You can get a customer's config from their site and show logs by appending \`?__posthog_debug=true\` to the url, e.g. https://app.mywebsite.com/login?__posthog_debug=true.", 
+        "This way works even if they aren't using the snippet"
     ]
 ]
 
