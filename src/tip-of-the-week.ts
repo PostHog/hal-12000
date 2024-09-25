@@ -24,7 +24,7 @@ const POSTHOG_TIPS: Tip[] = [
         "The first rule of Hoge is: we do not talk about Hoge."
     ],
     [
-        "you can also get a customer's config from their site by appending \`?__posthog_debug=true\` to the url, e.g. https://app.mywebsite.com/login?__posthog_debug=true.", 
+        "Debugging a customer issue? You can get a customer's config from their site and show logs by appending \`?__posthog_debug=true\` to the url, e.g. https://app.mywebsite.com/login?__posthog_debug=true.", 
         "This way works even if they aren't using the snippet"
     ]
 ]
