@@ -16,17 +16,17 @@ const POSTHOG_TIPS: Tip[] = [
         "It's NOT about _posting_ any _hogs_.",
     ],
     [
-        "The original version of the PostHog logo was drawn by James Hawkins. It is affectionately known as <https://res.cloudinary.com/dmukukwp6/image/upload/v1710055416/posthog.com/contents/images/blog/drawing-hedgehogs/hairy-thumb-logo.jpeg|the hairy thumb>",
-        "Lottie joined shortly after this attempt at artistry."
+        'The original version of the PostHog logo was drawn by James Hawkins. It is affectionately known as <https://res.cloudinary.com/dmukukwp6/image/upload/v1710055416/posthog.com/contents/images/blog/drawing-hedgehogs/hairy-thumb-logo.jpeg|the hairy thumb>.',
+        'Lottie joined shortly after this attempt at artistry.',
     ],
     [
-        "The initial version of Max AI – built during the Aruba hackathon – hallucinated a character called Hoge, claiming that that was the name of our mascot.",
-        "The first rule of Hoge is: we do not talk about Hoge."
+        'The initial version of Max AI – built during the Aruba hackathon – hallucinated a character called Hoge, claiming that that was the name of our mascot.',
+        'The first rule of Hoge is: we do not talk about Hoge.',
     ],
     [
-        "Debugging a customer issue? You can get a customer's config from their site and show logs by appending \`?__posthog_debug=true\` to the url, e.g. https://app.mywebsite.com/login?__posthog_debug=true.", 
-        "This way works even if they aren't using the snippet"
-    ]
+        "Debugging a customer issue? You can get a customer's config from their site and show logs by appending `?__posthog_debug=true` to the url, e.g. https://app.mywebsite.com/login?__posthog_debug=true.",
+        "This way works even if they aren't using the snippet",
+    ],
 ]
 
 function getCurrentTipOfTheWeek(): Tip {
@@ -39,6 +39,7 @@ export async function shoutAboutTipOfTheWeek(): Promise<void> {
     await app.client.chat.postMessage({
         channel: 'general',
         text: `*Tip of the week*:\n*${headline}*\n_${extraDetail}_`,
+        unfurl_links: false,
         blocks: [
             {
                 type: 'section',
@@ -46,6 +47,15 @@ export async function shoutAboutTipOfTheWeek(): Promise<void> {
                     type: 'mrkdwn',
                     text: `*Tip of the week:*\n${headline}\n_${extraDetail}_`,
                 },
+            },
+            {
+                type: 'context',
+                elements: [
+                    {
+                        type: 'mrkdwn',
+                        text: 'You can add a tip of the week too! <https://github.com/PostHog/hal-12000/blob/main/src/tip-of-the-week.ts#L6|Click here to edit them>',
+                    },
+                ],
             },
         ],
     })
