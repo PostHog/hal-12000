@@ -53,7 +53,7 @@ export async function shoutAboutTipOfTheWeek(): Promise<void> {
                 elements: [
                     {
                         type: 'mrkdwn',
-                        text: 'You can add a tip of the week too! <https://github.com/PostHog/hal-12000/blob/main/src/tip-of-the-week.ts#L6|Click here to edit them>',
+                        text: 'You can add a tip of the week too! <https://github.com/PostHog/hal-12000/edit/main/src/tip-of-the-week.ts|Click here to edit them>',
                     },
                 ],
             },
