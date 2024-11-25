@@ -28,7 +28,7 @@ const POSTHOG_TIPS: Tip[] = [
         "This way works even if they aren't using the snippet",
     ],
     [
-        "You can create a URL based notebook by visiting https://us.posthog.com/canvas. Any edits will be reflected in the URL which you can easily copy and share with anyone on the team.",
+        "You can create a URL-based notebook by visiting https://us.posthog.com/canvas. Any edits will be reflected in the URL which you can easily copy and share with anyone on the team.",
         "Great for support if you want to share an insight without modifying anything in a users account",
     ],
 ]
