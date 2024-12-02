@@ -11,7 +11,7 @@ async function updateSupportChannelTopic(role: Role, supportCastMemberMention: s
     if (channelsResponse.error) {
         throw channelsResponse.error
     }
-    const supportChannelName = role.channel.replace('team', 'support') // e.g. team-pipeline -> support-pipeline
+    const supportChannelName = role.channel.replace(/^(team|feature)/, 'support') // e.g. team-pipeline -> support-pipeline
     const channel = channelsResponse.channels?.find((channel) => channel.name === supportChannelName)
     if (!channel?.id) {
         throw new Error(`Channel #${supportChannelName} wasn't found in the first page of results`)
