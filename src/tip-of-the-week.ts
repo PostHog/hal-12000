@@ -32,7 +32,7 @@ const POSTHOG_TIPS: Tip[] = [
         "Great for support if you want to share an insight without modifying anything in a users account",
     ],
     [
-        "Cypress tests are recorded using session replay during CI".
+        "Cypress tests are recorded using session replay during CI",
         "You can visit https://us.posthog.com/project/28662/replay/home and filter by failing test, or test name to investigate your Cypress test failures in CI",
     ],
 ]
