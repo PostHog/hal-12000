@@ -25,4 +25,4 @@ HAL 12000 requires the following bot token scopes to work properly:
 
 ### Configuration
 
-[Click here](https://cloud.digitalocean.com/apps/fef6f59a-a58a-4759-bd29-c89363bd8343/settings?i=7cfa7c) (login required) to edit production environment variables on DigitalOcean.
+To edit production environment variables on DigitalOcean, [click here](https://cloud.digitalocean.com/apps/fef6f59a-a58a-4759-bd29-c89363bd8343/settings?i=7cfa7c) (login required).
