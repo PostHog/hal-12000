@@ -31,6 +31,9 @@ const POSTHOG_TIPS: Tip[] = [
         "You can create a URL-based notebook by visiting https://us.posthog.com/canvas. Any edits will be reflected in the URL which you can easily copy and share with anyone on the team.",
         "Great for support if you want to share an insight without modifying anything in a users account",
     ],
+    [
+        "Cypress tests are recorded using session replay during CI".
+        "You can visit https://us.posthog.com/project/28662 and filter by failing test, or test name to investigate your Cypress test failures in CI"
 ]
 
 function getCurrentTipOfTheWeek(): Tip {
