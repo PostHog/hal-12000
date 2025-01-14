@@ -35,6 +35,11 @@ const POSTHOG_TIPS: Tip[] = [
         "Cypress tests are recorded using session replay during CI",
         "You can visit https://us.posthog.com/project/28662/replay/home and filter by failing test, or test name to investigate your Cypress test failures in CI",
     ],
+    [
+        "Got a question? #ask-max works great as a first pass for product and handbook questions!",
+        "This is particularly helpful for new folks with lots of questions, or simply if you just don't feel like talking to anyone today. We've all been there.",
+    ],
+    
 ]
 
 function getCurrentTipOfTheWeek(): Tip {
