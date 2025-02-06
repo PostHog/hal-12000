@@ -16,7 +16,7 @@ export async function supportHeroShow(command: SlashCommand, respond: RespondFn)
 
     if (!supportRole.data) {
         await respond({
-            text: 'This channel is not configured with a support hero schedule. Use `/support-hero <pd_schedule_id> [hero_nickname]` to set one up.',
+            text: 'This channel is not configured with a support hero schedule. Use `/support-hero <pd_schedule_id_to_set> [hero_nickname]` to set one up.',
             response_type: 'ephemeral',
         })
         return
@@ -32,7 +32,7 @@ export async function supportHeroShow(command: SlashCommand, respond: RespondFn)
                 scheduleId: pdSchedule.id,
                 name: pdSchedule.name,
             }
-        )}\n – to change, use \`/support-hero <pd_schedule_id> [hero_nickname]\` in this channel`,
+        )}\n – to change, use \`/support-hero <pd_schedule_id_to_set> [hero_nickname]\` in this channel`,
         blocks: [
             {
                 type: 'section',
@@ -49,7 +49,7 @@ export async function supportHeroShow(command: SlashCommand, respond: RespondFn)
                         text: `Active schedule: ${linkifyRoleName({
                             scheduleId: pdSchedule.id,
                             name: pdSchedule.name,
-                        })}\n – to change, use \`/support-hero <pd_schedule_id> [hero_nickname]\` in this channel`,
+                        })} – to change, use \`/support-hero <pd_schedule_id> [hero_nickname]\` in this channel`,
                     },
                 ],
             },
@@ -98,13 +98,28 @@ export async function supportHeroSet(command: SlashCommand, respond: RespondFn):
     const supportChannelName = command.channel_name.replace(/^(team|feature)/, 'support') // e.g. team-pipeline -> support-pipeline
 
     await respond({
-        text: `<@${command.user_id}>, *This channel is now configured with support hero schedule ${linkifyRoleName({
+        text: `*This channel is now configured with support hero schedule ${linkifyRoleName({
             scheduleId: pdSchedule.id,
             name: pdSchedule.name,
-        })}${roleNickname ? ` – nickname: ${roleNickname}` : ''}**
+        })}${roleNickname ? `, aka: _${roleNickname}_` : ''}*
 Thanks, <@${command.user_id}>!
 Every Wednesday, next week's support hero will be posted.
 Every Monday, this week's support hero will be posted, and #${supportChannelName}'s description will be updated.`,
+        blocks: [
+            {
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: `*This channel is now configured with support hero schedule ${linkifyRoleName({
+                        scheduleId: pdSchedule.id,
+                        name: pdSchedule.name,
+                    })}${roleNickname ? `, aka: _${roleNickname}_` : ''}*
+Thanks, <@${command.user_id}>!
+Every Wednesday, next week's support hero will be posted.
+Every Monday, this week's support hero will be posted, and #${supportChannelName}'s description will be updated.`,
+                },
+            },
+        ],
         response_type: 'in_channel',
     })
 }
