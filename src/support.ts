@@ -98,27 +98,27 @@ export async function supportHeroSet(command: SlashCommand, respond: RespondFn):
     const supportChannelName = command.channel_name.replace(/^(team|feature)/, 'support') // e.g. team-pipeline -> support-pipeline
 
     await respond({
-        text: `*This channel is now configured with support hero schedule ${linkifyRoleName({
+        text: `*This channel is now configured with a ${roleNickname || 'support hero'} schedule: ${linkifyRoleName({
             scheduleId: pdSchedule.id,
             name: pdSchedule.id,
         })}${roleNickname ? `, aka: _${roleNickname}_` : ''}*
-Thanks, <@${command.user_id}>!
-Every Wednesday, next week's support hero will be posted.
-Every Monday, this week's support hero will be posted, and #${supportChannelName}'s description will be updated.`,
+Courtesy of <@${command.user_id}>.
+Every Monday, this week's support hero will be posted, and #${supportChannelName}'s description will be updated.
+Every Wednesday, next week's support hero will be posted.`,
         blocks: [
             {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: `*#${command.channel_name} is now configured with ${
+                    text: `*#${command.channel_name} is now configured with a ${
                         roleNickname || 'support hero'
-                    } schedule ${linkifyRoleName({
+                    } schedule: ${linkifyRoleName({
                         scheduleId: pdSchedule.id,
                         name: pdSchedule.id,
                     })}*
-Thanks, <@${command.user_id}>!
-Every Wednesday, next week's support hero will be posted.
-Every Monday, this week's support hero will be posted, and #${supportChannelName}'s description will be updated.`,
+Courtesy of <@${command.user_id}>.
+Every Monday, this week's support hero will be posted, and #${supportChannelName}'s description will be updated.
+Every Wednesday, next week's support hero will be posted.`,
                 },
             },
         ],
