@@ -59,7 +59,7 @@ export async function supportScheduleSet(command: SlashCommand, respond: Respond
         })
     }
     await respond({
-        text: `🎉 This channel is now configured with support schedule ${linkifyRoleName({
+        text: `🎉 <@${command.user_id}>, this channel is now configured with support schedule ${linkifyRoleName({
             scheduleId: pdSchedule.id,
             name: pdSchedule.name,
         })}${roleNickname ? ` – nickname: "${roleNickname}"` : ''}!`,
