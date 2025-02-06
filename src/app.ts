@@ -56,7 +56,7 @@ app.command('/support-hero', async ({ command, ack, respond }) => {
 
     if (!command.channel_name.startsWith('team-') && !command.channel_name.startsWith('feature-')) {
         await respond({
-            text: '/support-hero can only be used in channels that start with `team-`, `feature-`, or `-support`!',
+            text: '/support-hero can only be used in channels that start with `team-` or `feature-`!',
             response_type: 'ephemeral',
         })
         return
