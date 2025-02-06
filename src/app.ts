@@ -78,7 +78,7 @@ app.command('/support-schedule', async ({ command, ack, respond }) => {
         await database.from('support_roles').upsert(
             {
                 slack_channel_name: command.channel_name,
-                pd_schedule_id: pdScheduleId,
+                pd_schedule_id: pdScheduleId.toUpperCase(),
                 role_nickname: roleNickname,
             },
             {
