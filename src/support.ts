@@ -3,7 +3,7 @@ import { RespondFn, SlashCommand } from '@slack/bolt'
 
 import { app, fetchSlackMentionByEmail, linkifyRoleName } from './app'
 import { database } from './data'
-import { fetchPersonOnCallNWeeksFromNow } from './pagerduty'
+import { fetchPersonOnCallNWeeksFromNow, fetchSchedule, PagerDutySchedule } from './pagerduty'
 import type { Role } from './roles'
 
 /** Slack command /support-schedule */
@@ -26,13 +26,25 @@ export async function supportScheduleSet(command: SlashCommand, respond: Respond
         return
     }
 
+    let pdSchedule: PagerDutySchedule
+    try {
+        pdSchedule = await fetchSchedule(pdScheduleId)
+    } catch (error) {
+        captureException(error)
+        await respond({
+            text: 'Failed to fetch the schedule. Please check the schedule ID and try again.',
+            response_type: 'ephemeral',
+        })
+        return
+    }
+
     const roleNickname = roleNicknameParts.length > 0 ? roleNicknameParts.join(' ') : null
 
     try {
         await database.from('support_roles').upsert(
             {
                 slack_channel_name: command.channel_name,
-                pd_schedule_id: pdScheduleId.toUpperCase(),
+                pd_schedule_id: pdSchedule.id,
                 role_nickname: roleNickname,
             },
             {
@@ -48,8 +60,8 @@ export async function supportScheduleSet(command: SlashCommand, respond: Respond
     }
     await respond({
         text: `🎉 This channel is now configured with support schedule ${linkifyRoleName({
-            scheduleId: pdScheduleId,
-            name: pdScheduleId,
+            scheduleId: pdSchedule.id,
+            name: pdSchedule.name,
         })}${roleNickname ? ` – nickname: "${roleNickname}"` : ''}!`,
         response_type: 'in_channel',
     })
