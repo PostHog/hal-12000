@@ -54,6 +54,14 @@ app.command('/kudos', async ({ command, ack, respond }) => {
 app.command('/support-schedule', async ({ command, ack, respond }) => {
     await ack()
 
+    if (!command.channel_name.startsWith('team-') && !command.channel_name.startsWith('feature-')) {
+        await respond({
+            text: 'This command can only be used in channels that start with `team-` or `feature-`!',
+            response_type: 'ephemeral',
+        })
+        return
+    }
+
     const [pdScheduleId, ...roleNicknameParts] = command.text.trim().split(' ').filter(Boolean)
 
     if (!pdScheduleId) {
