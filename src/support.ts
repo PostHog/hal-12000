@@ -58,11 +58,17 @@ export async function supportScheduleSet(command: SlashCommand, respond: Respond
             response_type: 'ephemeral',
         })
     }
+
+    const supportChannelName = command.channel_name.replace(/^(team|feature)/, 'support') // e.g. team-pipeline -> support-pipeline
+
     await respond({
-        text: `🎉 <@${command.user_id}>, this channel is now configured with support schedule ${linkifyRoleName({
+        text: `<@${command.user_id}>, *This channel is now configured with support schedule ${linkifyRoleName({
             scheduleId: pdSchedule.id,
             name: pdSchedule.name,
-        })}${roleNickname ? ` – nickname: "${roleNickname}"` : ''}!`,
+        })}${roleNickname ? ` – nickname: ${roleNickname}` : ''}**
+Thanks, <@${command.user_id}>!
+Every Wednesday, next week's support hero will be posted.
+Every Monday, this week's support hero will be posted, and #${supportChannelName}'s description will be updated.`,
         response_type: 'in_channel',
     })
 }
