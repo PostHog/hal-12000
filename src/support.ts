@@ -27,19 +27,18 @@ export async function supportHeroShow(command: SlashCommand, respond: RespondFn)
     const supportCastMemberMention = await fetchSlackMentionByEmail(supportCastMember)
 
     await respond({
-        text: `*This channel is configured with support hero schedule ${linkifyRoleName({
-            scheduleId: pdSchedule.id,
-            name: pdSchedule.name,
-        })}*\nThis week: ${supportCastMemberMention}\nTo change the schedule, use \`/support-hero <pd_schedule_id> [hero_nickname]\``,
+        text: `*This week in #${command.channel_name}: ${supportCastMemberMention}*\nActive schedule: ${linkifyRoleName(
+            {
+                scheduleId: pdSchedule.id,
+                name: pdSchedule.name,
+            }
+        )}\n – to change, use \`/support-hero <pd_schedule_id> [hero_nickname]\` in this channel`,
         blocks: [
             {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: `*This channel is configured with support hero schedule ${linkifyRoleName({
-                        scheduleId: pdSchedule.id,
-                        name: pdSchedule.name,
-                    })}*\nThis week: ${supportCastMemberMention}`,
+                    text: `*This week in #${command.channel_name}: ${supportCastMemberMention}*`,
                 },
             },
             {
@@ -47,7 +46,10 @@ export async function supportHeroShow(command: SlashCommand, respond: RespondFn)
                 elements: [
                     {
                         type: 'mrkdwn',
-                        text: 'To change the schedule, use `/support-hero <pd_schedule_id> [hero_nickname]`',
+                        text: `Active schedule: ${linkifyRoleName({
+                            scheduleId: pdSchedule.id,
+                            name: pdSchedule.name,
+                        })}\n – to change, use \`/support-hero <pd_schedule_id> [hero_nickname]\` in this channel`,
                     },
                 ],
             },
