@@ -5,7 +5,7 @@ import { RecurrenceRule, scheduleJob } from 'node-schedule'
 
 import { app } from './app'
 import { shoutAboutCurrentOnCall, shoutAboutUpcomingOnCall } from './oncall'
-import { SUPPORT_HERO_ROLES } from './roles'
+import { fetchSupportHeroRoles } from './roles'
 import { shoutAboutCurrentSupportCastMember, shoutAboutUpcomingSupportCastMembers } from './support'
 import { shoutAboutTipOfTheWeek } from './tip-of-the-week'
 
@@ -15,8 +15,9 @@ Sentry.init({
 })
 
 export async function shoutAboutCurrentCast(): Promise<void> {
+    const supportHeroRoles = await fetchSupportHeroRoles()
     const results = await Promise.allSettled([
-        ...SUPPORT_HERO_ROLES.map(shoutAboutCurrentSupportCastMember),
+        ...supportHeroRoles.map(shoutAboutCurrentSupportCastMember),
         shoutAboutCurrentOnCall(),
     ])
     for (const result of results) {
@@ -27,8 +28,9 @@ export async function shoutAboutCurrentCast(): Promise<void> {
 }
 
 export async function shoutAboutUpcomingCast(): Promise<void> {
+    const supportHeroRoles = await fetchSupportHeroRoles()
     const results = await Promise.allSettled([
-        ...SUPPORT_HERO_ROLES.map(shoutAboutUpcomingSupportCastMembers),
+        ...supportHeroRoles.map(shoutAboutUpcomingSupportCastMembers),
         shoutAboutUpcomingOnCall(),
     ])
     for (const result of results) {
