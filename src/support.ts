@@ -6,26 +6,60 @@ import { database } from './data'
 import { fetchPersonOnCallNWeeksFromNow, fetchSchedule, PagerDutySchedule } from './pagerduty'
 import type { Role } from './roles'
 
-/** Slack command /support-schedule */
-export async function supportScheduleSet(command: SlashCommand, respond: RespondFn): Promise<void> {
-    if (!command.channel_name.startsWith('team-') && !command.channel_name.startsWith('feature-')) {
+/** Slack command /support-hero */
+export async function supportHeroShow(command: SlashCommand, respond: RespondFn): Promise<void> {
+    const supportRole = await database
+        .from('support_roles')
+        .select('*')
+        .eq('slack_channel_name', command.channel_name)
+        .single()
+
+    if (!supportRole.data) {
         await respond({
-            text: 'This command can only be used in channels that start with `team-` or `feature-`!',
+            text: 'This channel is not configured with a support hero schedule. Use `/support-hero <pd_schedule_id> [hero_nickname]` to set one up.',
             response_type: 'ephemeral',
         })
         return
     }
 
+    const pdSchedule = await fetchSchedule(supportRole.data.pd_schedule_id)
+    const supportCastMember = await fetchPersonOnCallNWeeksFromNow(0, supportRole.data.pd_schedule_id)
+    const supportCastMemberMention = await fetchSlackMentionByEmail(supportCastMember)
+
+    await respond({
+        text: `*This channel is configured with support hero schedule ${linkifyRoleName({
+            scheduleId: pdSchedule.id,
+            name: pdSchedule.name,
+        })}*\nThis week: ${supportCastMemberMention}\nTo change the schedule, use \`/support-hero <pd_schedule_id> [hero_nickname]\``,
+        blocks: [
+            {
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: `*This channel is configured with support hero schedule ${linkifyRoleName({
+                        scheduleId: pdSchedule.id,
+                        name: pdSchedule.name,
+                    })}*\nThis week: ${supportCastMemberMention}`,
+                },
+            },
+            {
+                type: 'context',
+                elements: [
+                    {
+                        type: 'mrkdwn',
+                        text: 'To change the schedule, use `/support-hero <pd_schedule_id> [hero_nickname]`',
+                    },
+                ],
+            },
+        ],
+        response_type: 'ephemeral',
+    })
+}
+
+/** Slack command /support-hero <pd_schedule_id> */
+export async function supportHeroSet(command: SlashCommand, respond: RespondFn): Promise<void> {
+    // We know pdScheduleId must be non-empty in this function
     const [pdScheduleId, ...roleNicknameParts] = command.text.trim().split(' ').filter(Boolean)
-
-    if (!pdScheduleId) {
-        await respond({
-            text: 'Please provide a PagerDuty schedule ID, and optionally a nickname for your support person.\nUsage: `/support-schedule <pd_schedule_id> [nickname]`',
-            response_type: 'ephemeral',
-        })
-        return
-    }
-
     let pdSchedule: PagerDutySchedule
     try {
         pdSchedule = await fetchSchedule(pdScheduleId)
@@ -54,7 +88,7 @@ export async function supportScheduleSet(command: SlashCommand, respond: Respond
     } catch (error) {
         captureException(error)
         await respond({
-            text: 'Failed to update support schedule. Please try again or ping Michael Matloka',
+            text: 'Failed to update support hero schedule. Please try again or ping Michael Matloka',
             response_type: 'ephemeral',
         })
     }
@@ -62,7 +96,7 @@ export async function supportScheduleSet(command: SlashCommand, respond: Respond
     const supportChannelName = command.channel_name.replace(/^(team|feature)/, 'support') // e.g. team-pipeline -> support-pipeline
 
     await respond({
-        text: `<@${command.user_id}>, *This channel is now configured with support schedule ${linkifyRoleName({
+        text: `<@${command.user_id}>, *This channel is now configured with support hero schedule ${linkifyRoleName({
             scheduleId: pdSchedule.id,
             name: pdSchedule.name,
         })}${roleNickname ? ` – nickname: ${roleNickname}` : ''}**

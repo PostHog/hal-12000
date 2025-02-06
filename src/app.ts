@@ -4,7 +4,7 @@ import { UsersLookupByEmailResponse } from '@slack/web-api'
 
 import { kudosGive, kudosShow } from './kudos'
 import { Role } from './roles'
-import { supportScheduleSet } from './support'
+import { supportHeroSet, supportHeroShow } from './support'
 
 export const app = new App({
     token: process.env.SLACK_BOT_TOKEN,
@@ -51,8 +51,20 @@ app.command('/kudos', async ({ command, ack, respond }) => {
     }
 })
 
-app.command('/support-schedule', async ({ command, ack, respond }) => {
+app.command('/support-hero', async ({ command, ack, respond }) => {
     await ack()
 
-    await supportScheduleSet(command, respond)
+    if (!command.channel_name.startsWith('team-') && !command.channel_name.startsWith('feature-')) {
+        await respond({
+            text: '/support-hero can only be used in channels that start with `team-`, `feature-`, or `-support`!',
+            response_type: 'ephemeral',
+        })
+        return
+    }
+
+    if (!command.text.trim()) {
+        await supportHeroShow(command, respond)
+    } else {
+        await supportHeroSet(command, respond)
+    }
 })
