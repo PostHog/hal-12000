@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 
 import { database } from './data'
 
+/** Slack command /kudos show */
 export async function kudosShow(command: SlashCommand, respond: RespondFn, args: string[]): Promise<void> {
     let list = database.from('kudos').select('*').order('created_at', { ascending: false })
     const daysPastArg = args[0]
@@ -37,6 +38,7 @@ export async function kudosShow(command: SlashCommand, respond: RespondFn, args:
     })
 }
 
+/** Slack command /kudos <person> */
 export async function kudosGive(command: SlashCommand, respond: RespondFn, args: string[]): Promise<void> {
     const targetUserMention = args[0]
     const targetUserId = targetUserMention?.match(/^<@(.+)\|.+>$/)?.[1]
