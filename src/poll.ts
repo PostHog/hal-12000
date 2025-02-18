@@ -1,5 +1,5 @@
 import { App, BlockAction, RespondFn, SlashCommand } from '@slack/bolt'
-import { Block, KnownBlock } from '@slack/types'
+import { Block, KnownBlock, PlainTextOption } from '@slack/types'
 
 import { database } from './data'
 
@@ -299,6 +299,74 @@ export function registerPollActions(app: App) {
         const numOptions = pollData.options.length
         const votes = (pollData.votes as Record<string, number[]>) || {}
         const currentRanking: number[] = votes[body.user.id] || Array.from({ length: numOptions }, (_, i) => i + 1)
+
+        // Get all currently used ranks for initial state
+        const usedRanks = new Set<number>()
+        for (let i = 0; i < numOptions; i++) {
+            if (currentRanking[i]) {
+                usedRanks.add(currentRanking[i])
+            }
+        }
+
+        // Create the voting modal blocks
+        const modalBlocks: (Block | KnownBlock)[] = [
+            {
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: `*${pollData.question}*\nRank each option by selecting its position (1 = top choice)`,
+                },
+            },
+            {
+                type: 'divider',
+            },
+        ]
+
+        // Add each option with its rank selector
+        pollData.options.forEach((option, index) => {
+            const currentRank = currentRanking[index]
+            modalBlocks.push({
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: option,
+                },
+                accessory: {
+                    type: 'static_select',
+                    action_id: `rank_${index}`,
+                    placeholder: {
+                        type: 'plain_text',
+                        text: 'Select rank',
+                    },
+                    options: Array.from({ length: numOptions }, (_, i) => {
+                        const rank = i + 1
+                        return {
+                            text: {
+                                type: 'plain_text' as const,
+                                text: `${rank}${rank === 1 ? ' (top choice)' : ''}`,
+                            },
+                            value: `${rank}`,
+                        } as PlainTextOption
+                    }).filter((option): option is PlainTextOption => {
+                        if (!option.value) {
+                            return false
+                        }
+                        const rank = parseInt(option.value)
+                        return !usedRanks.has(rank) || rank === currentRank
+                    }),
+                    ...(currentRank && {
+                        initial_option: {
+                            text: {
+                                type: 'plain_text' as const,
+                                text: `${currentRank}${currentRank === 1 ? ' (top choice)' : ''}`,
+                            },
+                            value: currentRank.toString(),
+                        },
+                    }),
+                },
+            })
+        })
+
         await client.views.open({
             trigger_id: (body as any).trigger_id,
             view: {
@@ -317,49 +385,7 @@ export function registerPollActions(app: App) {
                     type: 'plain_text',
                     text: 'Cancel',
                 },
-                blocks: [
-                    {
-                        type: 'section',
-                        text: {
-                            type: 'mrkdwn',
-                            text: `*${pollData.question}*\nRank each option by selecting its position (1 = top choice)`,
-                        },
-                    },
-                    {
-                        type: 'divider',
-                    },
-                    ...pollData.options.map((option, index) => ({
-                        type: 'section',
-                        text: {
-                            type: 'mrkdwn',
-                            text: option,
-                        },
-                        accessory: {
-                            type: 'static_select',
-                            action_id: `rank_${index}`,
-                            placeholder: {
-                                type: 'plain_text',
-                                text: 'Select rank',
-                            },
-                            options: Array.from({ length: pollData.options.length }, (_, i) => ({
-                                text: {
-                                    type: 'plain_text',
-                                    text: `${i + 1}${i === 0 ? ' (top choice)' : ''}`,
-                                },
-                                value: `${i + 1}`,
-                            })),
-                            initial_option: {
-                                text: {
-                                    type: 'plain_text',
-                                    text: `${currentRanking[index]}${
-                                        currentRanking[index] === 1 ? ' (top choice)' : ''
-                                    }`,
-                                },
-                                value: currentRanking[index].toString(),
-                            },
-                        },
-                    })),
-                ],
+                blocks: modalBlocks,
             },
         })
     })
@@ -437,23 +463,124 @@ export function registerPollActions(app: App) {
         await database.from('polls').update({ closed_at: new Date().toISOString() }).eq('id', pollId)
         const numOptions = pollData.options.length
         const voteResults = new Array(numOptions).fill(0)
+        const numVoters = Object.keys(pollData.votes || {}).length
+
+        // Calculate points using Borda count method
+        // In Borda count, each 1st place vote is worth n-1 points,
+        // 2nd place is worth n-2 points, etc., where n is the number of options
         if (pollData.votes) {
             for (const vote of Object.values(pollData.votes)) {
                 const ranking = vote as number[]
-                // For a vote like "2,1,3", we assume the order of numbers represents the ranking order (first element = top choice).
                 for (let i = 0; i < ranking.length; i++) {
-                    const optionIndex = ranking[i] - 1
-                    voteResults[optionIndex] += numOptions - i
+                    // ranking[i] is the position (1-based) where option i was ranked
+                    // So if ranking[2] = 1, it means option 2 was ranked 1st
+                    // Points for each position are (numOptions - position)
+                    // e.g., for 4 options: 1st = 3 points, 2nd = 2 points, 3rd = 1 point, 4th = 0 points
+                    const position = ranking[i]
+                    voteResults[i] += numOptions - position
                 }
             }
         }
-        let resultText = `*Poll results: ${pollData.question}*\n`
-        pollData.options.forEach((option: string, idx: number) => {
-            resultText += `• ${option}: ${voteResults[idx]} points\n`
+
+        // Calculate max points possible per option and find the winner
+        // Max points is when all voters rank an option first: (numOptions - 1) * numVoters
+        const maxPointsPossible = (numOptions - 1) * numVoters
+        const maxPoints = Math.max(...voteResults)
+        const winnerIndices = voteResults
+            .map((points, index) => (points === maxPoints ? index : -1))
+            .filter((i) => i !== -1)
+
+        // Sort options by points
+        const sortedResults = voteResults
+            .map((points, index) => ({ points, option: pollData.options[index], index }))
+            .sort((a, b) => b.points - a.points)
+
+        // Create blocks for the results message
+        const resultBlocks: (Block | KnownBlock)[] = [
+            {
+                type: 'header',
+                text: {
+                    type: 'plain_text',
+                    text: '📊 Poll Results',
+                    emoji: true,
+                },
+            },
+            {
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: `*${pollData.question}*`,
+                },
+            },
+            {
+                type: 'context',
+                elements: [
+                    {
+                        type: 'mrkdwn',
+                        text: `_${numVoters} ${numVoters === 1 ? 'person' : 'people'} voted_`,
+                    },
+                ],
+            },
+            {
+                type: 'divider',
+            },
+        ]
+
+        // Add each option with its score visualization
+        sortedResults.forEach(({ points, option }, position) => {
+            const percentage = ((points / maxPointsPossible) * 100).toFixed(1)
+            const barLength = Math.round((points / maxPoints) * 20)
+            const bar = '█'.repeat(barLength) + '▒'.repeat(20 - barLength)
+            const medal = position === 0 ? '🥇' : position === 1 ? '🥈' : position === 2 ? '🥉' : '•'
+
+            resultBlocks.push(
+                {
+                    type: 'section',
+                    text: {
+                        type: 'mrkdwn',
+                        text: `${medal} *${option}*`,
+                    },
+                },
+                {
+                    type: 'context',
+                    elements: [
+                        {
+                            type: 'mrkdwn',
+                            text: `\`${bar}\` ${points} points (${percentage}%)`,
+                        },
+                    ],
+                }
+            )
         })
+
+        // Add a divider before the winner announcement
+        resultBlocks.push({ type: 'divider' })
+
+        // Add winner announcement
+        if (winnerIndices.length === 1) {
+            resultBlocks.push({
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: `🎉 *"${pollData.options[winnerIndices[0]]}" wins!*`,
+                },
+            })
+        } else if (winnerIndices.length > 1) {
+            resultBlocks.push({
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: `🤝 *It's a tie between: ${winnerIndices
+                        .map((i) => `"${pollData.options[i]}"`)
+                        .join(' and ')}!*`,
+                },
+            })
+        }
+
         await client.chat.postMessage({
             channel: pollData.slack_channel_id,
-            text: resultText,
+            blocks: resultBlocks,
+            text: `Poll Results: ${pollData.question}`, // Fallback text
         })
     })
 
@@ -473,49 +600,100 @@ export function registerPollActions(app: App) {
 
         const optionToRemove = parseInt((action as any).value)
         const updatedBlocks: (Block | KnownBlock)[] = []
-        let currentOption = 1
 
-        for (let i = 0; i < view.blocks.length; i++) {
-            const block = view.blocks[i]
-            if (block.block_id?.startsWith('option_') && !block.block_id?.startsWith('option_input_')) {
-                const currentNumber = parseInt(block.block_id.split('_')[1])
-                if (currentNumber !== optionToRemove) {
-                    const newBlocks = createOptionBlock(currentOption, numOptions - 1 > 2)
-                    updatedBlocks.push(...newBlocks)
-                    currentOption++
+        // First, collect all option values
+        const optionValues: Record<number, string> = {}
+        for (let i = 1; i <= numOptions; i++) {
+            if (i !== optionToRemove) {
+                const value = view.state.values[`option_input_${i}`]?.option?.value
+                if (value) {
+                    optionValues[i] = value
                 }
-                // Skip the input block
-                i++
-            } else {
-                updatedBlocks.push(block)
             }
         }
 
-        await client.views.update({
+        // Add non-option blocks first (question block)
+        updatedBlocks.push(view.blocks[0])
+
+        // Recreate option blocks with correct numbering
+        let newOptionNumber = 1
+        const optionNumbers = Object.keys(optionValues)
+        for (let i = 0; i < optionNumbers.length; i++) {
+            const newBlocks = createOptionBlock(newOptionNumber, numOptions - 1 > 2)
+            updatedBlocks.push(...newBlocks)
+            newOptionNumber++
+        }
+
+        // Add the "Add another option" button block at the end
+        updatedBlocks.push(view.blocks[view.blocks.length - 1])
+
+        // First update to recreate the structure
+        const updatedView = {
+            type: 'modal' as const,
+            callback_id: view.callback_id,
+            title: {
+                type: 'plain_text' as const,
+                text: 'Create a Poll',
+            },
+            submit: {
+                type: 'plain_text' as const,
+                text: 'Create',
+            },
+            close: {
+                type: 'plain_text' as const,
+                text: 'Cancel',
+            },
+            private_metadata: JSON.stringify({ ...metadata, num_options: numOptions - 1 }),
+            blocks: updatedBlocks,
+        }
+
+        const updateResponse = await client.views.update({
             view_id: view.id,
             hash: view.hash,
-            view: {
-                type: 'modal',
-                callback_id: view.callback_id,
-                title: {
-                    type: 'plain_text',
-                    text: 'Create a Poll',
-                },
-                submit: {
-                    type: 'plain_text',
-                    text: 'Create',
-                },
-                close: {
-                    type: 'plain_text',
-                    text: 'Cancel',
-                },
-                private_metadata: JSON.stringify({ ...metadata, num_options: numOptions - 1 }),
-                blocks: updatedBlocks,
-            },
+            view: updatedView,
         })
+
+        if (!updateResponse.view) {
+            return
+        }
+
+        // Wait a moment for the view to update
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        // Set the values for each option input
+        let currentOptionNumber = 1
+        for (const [, value] of Object.entries(optionValues)) {
+            const updatedBlocksWithValues = updatedBlocks.map((block) => {
+                if (
+                    block.type === 'input' &&
+                    block.block_id === `option_input_${currentOptionNumber}` &&
+                    'element' in block &&
+                    block.element.type === 'plain_text_input'
+                ) {
+                    return {
+                        ...block,
+                        element: {
+                            ...block.element,
+                            initial_value: value,
+                        },
+                    }
+                }
+                return block
+            })
+
+            await client.views.update({
+                view_id: view.id,
+                hash: updateResponse.view.hash,
+                view: {
+                    ...updatedView,
+                    blocks: updatedBlocksWithValues,
+                },
+            })
+            currentOptionNumber++
+        }
     })
 
-    // Add handler for rank selection (after the vote_poll handler)
+    // Add handler for rank selection
     app.action(/^rank_\d+$/, async ({ ack, body, action, client }) => {
         await ack()
         const view = (body as BlockAction).view
@@ -526,21 +704,23 @@ export function registerPollActions(app: App) {
         const selectedRank = parseInt((action as any).selected_option.value)
         const currentActionId = (action as any).action_id
         const currentOptionIndex = parseInt(currentActionId.split('_')[1])
-        const numOptions = view.blocks.filter(
-            (block) => block.type === 'section' && 'accessory' in block && block.accessory?.type === 'static_select'
-        ).length
 
-        // Collect all currently selected ranks
-        const selectedRanks = new Set<number>()
-        for (let i = 0; i < numOptions; i++) {
-            if (i !== currentOptionIndex) {
-                const value = view.state.values[`rank_${i}`]?.[`rank_${i}`]?.selected_option?.value
+        // Get all currently selected ranks
+        const selectedRanks = new Map<number, number>() // optionIndex -> rank
+        const blocks = view.blocks.filter(
+            (block) => block.type === 'section' && 'accessory' in block && block.accessory?.type === 'static_select'
+        )
+
+        blocks.forEach((block, index) => {
+            if (index === currentOptionIndex) {
+                selectedRanks.set(index, selectedRank)
+            } else {
+                const value = view.state.values[`rank_${index}`]?.[`rank_${index}`]?.selected_option?.value
                 if (value) {
-                    selectedRanks.add(parseInt(value))
+                    selectedRanks.set(index, parseInt(value))
                 }
             }
-        }
-        selectedRanks.add(selectedRank)
+        })
 
         // Create updated blocks with filtered options
         const updatedBlocks = view.blocks.map((block) => {
@@ -551,28 +731,45 @@ export function registerPollActions(app: App) {
                 block.accessory.action_id
             ) {
                 const optionIndex = parseInt(block.accessory.action_id.split('_')[1])
-                if (optionIndex !== currentOptionIndex) {
-                    const currentValue =
-                        view.state.values[`rank_${optionIndex}`]?.[`rank_${optionIndex}`]?.selected_option?.value
-                    return {
-                        ...block,
-                        accessory: {
-                            ...block.accessory,
-                            options: Array.from({ length: numOptions }, (_, i) => {
-                                const rank = i + 1
-                                return {
-                                    text: {
-                                        type: 'plain_text',
-                                        text: `${rank}${rank === 1 ? ' (top choice)' : ''}`,
-                                    },
-                                    value: `${rank}`,
-                                }
-                            }).filter((option) => {
-                                const rank = parseInt(option.value)
-                                return !selectedRanks.has(rank) || (currentValue && rank === parseInt(currentValue))
-                            }),
-                        },
-                    }
+                const currentValue = selectedRanks.get(optionIndex)
+
+                // Create a set of used ranks excluding the current option's rank
+                const usedRanks = new Set(
+                    Array.from(selectedRanks.entries())
+                        .filter(([index]) => index !== optionIndex)
+                        .map(([, rank]) => rank)
+                )
+
+                return {
+                    ...block,
+                    accessory: {
+                        ...block.accessory,
+                        options: Array.from({ length: blocks.length }, (_, i) => {
+                            const rank = i + 1
+                            return {
+                                text: {
+                                    type: 'plain_text' as const,
+                                    text: `${rank}${rank === 1 ? ' (top choice)' : ''}`,
+                                },
+                                value: `${rank}`,
+                            } as PlainTextOption
+                        }).filter((option): option is PlainTextOption => {
+                            if (!option.value) {
+                                return false
+                            }
+                            const rank = parseInt(option.value)
+                            return !usedRanks.has(rank) || rank === currentValue
+                        }),
+                        ...(currentValue && {
+                            initial_option: {
+                                text: {
+                                    type: 'plain_text' as const,
+                                    text: `${currentValue}${currentValue === 1 ? ' (top choice)' : ''}`,
+                                },
+                                value: currentValue.toString(),
+                            },
+                        }),
+                    },
                 }
             }
             return block
@@ -596,7 +793,7 @@ export function registerPollActions(app: App) {
                     type: 'plain_text',
                     text: 'Cancel',
                 },
-                private_metadata: view.private_metadata,
+                private_metadata: view.private_metadata || '',
                 blocks: updatedBlocks,
             },
         })
