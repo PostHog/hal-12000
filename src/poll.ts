@@ -1,5 +1,5 @@
 import { App, BlockAction, RespondFn, SlashCommand } from '@slack/bolt'
-import { Block } from '@slack/types'
+import { Block, KnownBlock } from '@slack/types'
 
 import { database } from './data'
 
@@ -228,7 +228,7 @@ export function registerPollActions(app: App) {
         }
 
         const pollId = data.id
-        const pollMessageBlocks = [
+        const pollMessageBlocks: KnownBlock[] = [
             {
                 type: 'section',
                 text: {
@@ -252,7 +252,7 @@ export function registerPollActions(app: App) {
                     {
                         type: 'button',
                         text: { type: 'plain_text', text: 'Rank options', emoji: true },
-                        value: pollId,
+                        value: pollId.toString(),
                         action_id: 'vote_poll',
                         style: 'primary',
                     },
@@ -260,7 +260,7 @@ export function registerPollActions(app: App) {
                         type: 'button',
                         text: { type: 'plain_text', text: 'Close', emoji: true },
                         style: 'danger',
-                        value: pollId,
+                        value: pollId.toString(),
                         action_id: 'close_poll',
                     },
                 ],
@@ -278,7 +278,7 @@ export function registerPollActions(app: App) {
     app.action('vote_poll', async ({ ack, body, action, client }) => {
         await ack()
         const btnValue = (action as any).value as string
-        const [pollId] = btnValue.split('|')
+        const pollId = Number(btnValue.split('|')[0])
         const { data: pollData, error } = await database.from('polls').select('*').eq('id', pollId).single()
         if (error || !pollData) {
             await client.chat.postEphemeral({
@@ -305,7 +305,7 @@ export function registerPollActions(app: App) {
             view: {
                 type: 'modal',
                 callback_id: 'vote_poll_modal',
-                private_metadata: pollId,
+                private_metadata: pollId.toString(),
                 title: {
                     type: 'plain_text',
                     text: 'Vote on poll',
@@ -437,7 +437,7 @@ export function registerPollActions(app: App) {
         }
 
         const optionToRemove = parseInt((action as any).value)
-        const updatedBlocks = []
+        const updatedBlocks: (Block | KnownBlock)[] = []
         let currentOption = 1
 
         for (let i = 0; i < view.blocks.length; i++) {
@@ -482,47 +482,36 @@ export function registerPollActions(app: App) {
     })
 }
 
-function createOptionBlock(number: number, showRemoveButton: boolean) {
-    const blocks = [
-        {
-            type: 'input',
-            block_id: `option_${number}`,
-            element: {
-                type: 'plain_text_input',
-                action_id: 'option',
-                placeholder: {
-                    type: 'plain_text',
-                    text: 'Enter an option',
-                },
-            },
-            label: {
+function createOptionBlock(number: number, showRemoveButton: boolean): KnownBlock[] {
+    const inputBlock: KnownBlock = {
+        type: 'input',
+        block_id: `option_${number}`,
+        element: {
+            type: 'plain_text_input',
+            action_id: 'option',
+            placeholder: {
                 type: 'plain_text',
-                text: `Option ${number}`,
+                text: 'Enter an option',
             },
         },
-    ]
-
-    if (showRemoveButton) {
-        return [
-            ...blocks,
-            {
-                type: 'actions',
-                block_id: `remove_option_${number}`,
-                elements: [
-                    {
-                        type: 'button',
-                        text: {
-                            type: 'plain_text',
-                            text: '❌',
-                            emoji: true,
-                        },
-                        action_id: 'remove_poll_option',
-                        value: `${number}`,
-                    },
-                ],
-            },
-        ]
+        label: {
+            type: 'plain_text',
+            text: `Option ${number}`,
+        },
     }
 
-    return blocks
+    if (showRemoveButton) {
+        ;(inputBlock as any).accessory = {
+            type: 'button',
+            text: {
+                type: 'plain_text',
+                text: '❌',
+                emoji: true,
+            },
+            action_id: 'remove_poll_option',
+            value: `${number}`,
+        }
+    }
+
+    return [inputBlock]
 }
