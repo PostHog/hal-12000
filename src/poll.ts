@@ -78,7 +78,7 @@ export async function rankPollCreate(command: SlashCommand, respond: RespondFn, 
                             type: 'button',
                             text: {
                                 type: 'plain_text',
-                                text: 'Add Another Option',
+                                text: 'Add another option',
                                 emoji: true,
                             },
                             action_id: 'add_poll_option',
@@ -140,23 +140,7 @@ export function registerPollActions(app: App) {
             return
         }
 
-        const newOptionBlock = {
-            type: 'input',
-            block_id: `option_${numOptions}`,
-            element: {
-                type: 'plain_text_input',
-                action_id: 'option',
-                placeholder: {
-                    type: 'plain_text',
-                    text: 'Enter an option',
-                },
-            },
-            label: {
-                type: 'plain_text',
-                text: `Option ${numOptions}`,
-            },
-        }
-
+        const newOptionBlocks = createOptionBlock(numOptions, true)
         await client.views.update({
             view_id: view.id,
             hash: view.hash,
@@ -176,7 +160,7 @@ export function registerPollActions(app: App) {
                     text: 'Cancel',
                 },
                 private_metadata: JSON.stringify({ ...metadata, num_options: numOptions }),
-                blocks: [...view.blocks.slice(0, -1), newOptionBlock, view.blocks[view.blocks.length - 1]],
+                blocks: [...view.blocks.slice(0, -1), ...newOptionBlocks, view.blocks[view.blocks.length - 1]],
             },
         })
     })
@@ -255,19 +239,23 @@ export function registerPollActions(app: App) {
             {
                 type: 'divider',
             },
-            ...options.map((option, index) => ({
+            {
                 type: 'section',
-                text: { type: 'mrkdwn', text: `*${index + 1}.* ${option}` },
-                accessory: {
-                    type: 'button',
-                    text: { type: 'plain_text', text: 'Vote', emoji: true },
-                    value: `${pollId}|${index}`,
-                    action_id: 'vote_poll',
+                text: {
+                    type: 'mrkdwn',
+                    text: options.map((option, index) => `*${index + 1}.* ${option}`).join('\n'),
                 },
-            })),
+            },
             {
                 type: 'actions',
                 elements: [
+                    {
+                        type: 'button',
+                        text: { type: 'plain_text', text: 'Rank options', emoji: true },
+                        value: pollId,
+                        action_id: 'vote_poll',
+                        style: 'primary',
+                    },
                     {
                         type: 'button',
                         text: { type: 'plain_text', text: 'Close', emoji: true },
@@ -332,11 +320,20 @@ export function registerPollActions(app: App) {
                 },
                 blocks: [
                     {
+                        type: 'section',
+                        text: {
+                            type: 'mrkdwn',
+                            text: `*${pollData.question}*\n\n${pollData.options
+                                .map((option, index) => `*${index + 1}.* ${option}`)
+                                .join('\n')}`,
+                        },
+                    },
+                    {
                         type: 'input',
                         block_id: 'ranking_input',
                         label: {
                             type: 'plain_text',
-                            text: `Enter your ranking order as comma-separated numbers (your preferred order of option numbers). For example, "2,1,3" means option 2 is your top choice, then option 1, then option 3.`,
+                            text: `Enter your ranking as comma-separated numbers (e.g., "2,1,3" means option 2 is your top choice)`,
                         },
                         element: {
                             type: 'plain_text_input',
@@ -424,4 +421,108 @@ export function registerPollActions(app: App) {
             text: resultText,
         })
     })
+
+    // Add handler for remove option button
+    app.action('remove_poll_option', async ({ ack, body, action, client }) => {
+        await ack()
+        const view = (body as BlockAction).view
+        if (!view) {
+            return
+        }
+
+        const metadata = JSON.parse(view.private_metadata)
+        const numOptions = metadata.num_options
+        if (numOptions <= 2) {
+            return
+        }
+
+        const optionToRemove = parseInt((action as any).value)
+        const updatedBlocks = []
+        let currentOption = 1
+
+        for (let i = 0; i < view.blocks.length; i++) {
+            const block = view.blocks[i]
+            if (block.block_id?.startsWith('option_')) {
+                if (parseInt(block.block_id.split('_')[1]) !== optionToRemove) {
+                    const newBlocks = createOptionBlock(currentOption, numOptions - 1 > 2)
+                    updatedBlocks.push(...newBlocks)
+                    currentOption++
+                }
+                // Skip the remove button block if it exists
+                if (i + 1 < view.blocks.length && view.blocks[i + 1].block_id?.startsWith('remove_option_')) {
+                    i++
+                }
+            } else {
+                updatedBlocks.push(block)
+            }
+        }
+
+        await client.views.update({
+            view_id: view.id,
+            hash: view.hash,
+            view: {
+                type: 'modal',
+                callback_id: view.callback_id,
+                title: {
+                    type: 'plain_text',
+                    text: 'Create a Poll',
+                },
+                submit: {
+                    type: 'plain_text',
+                    text: 'Create',
+                },
+                close: {
+                    type: 'plain_text',
+                    text: 'Cancel',
+                },
+                private_metadata: JSON.stringify({ ...metadata, num_options: numOptions - 1 }),
+                blocks: updatedBlocks,
+            },
+        })
+    })
+}
+
+function createOptionBlock(number: number, showRemoveButton: boolean) {
+    const blocks = [
+        {
+            type: 'input',
+            block_id: `option_${number}`,
+            element: {
+                type: 'plain_text_input',
+                action_id: 'option',
+                placeholder: {
+                    type: 'plain_text',
+                    text: 'Enter an option',
+                },
+            },
+            label: {
+                type: 'plain_text',
+                text: `Option ${number}`,
+            },
+        },
+    ]
+
+    if (showRemoveButton) {
+        return [
+            ...blocks,
+            {
+                type: 'actions',
+                block_id: `remove_option_${number}`,
+                elements: [
+                    {
+                        type: 'button',
+                        text: {
+                            type: 'plain_text',
+                            text: '❌',
+                            emoji: true,
+                        },
+                        action_id: 'remove_poll_option',
+                        value: `${number}`,
+                    },
+                ],
+            },
+        ]
+    }
+
+    return blocks
 }
