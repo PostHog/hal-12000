@@ -3,6 +3,7 @@ import { App } from '@slack/bolt'
 import { UsersLookupByEmailResponse } from '@slack/web-api'
 
 import { kudosGive, kudosShow } from './kudos'
+import { rankPollCreate, registerPollActions } from './poll'
 import { Role } from './roles'
 import { supportHeroSet, supportHeroShow } from './support'
 
@@ -68,3 +69,10 @@ app.command('/support-hero', async ({ command, ack, respond }) => {
         await supportHeroSet(command, respond)
     }
 })
+
+app.command('/rank-poll', async ({ command, ack, respond }) => {
+    await ack()
+    await rankPollCreate(command, respond, app.client)
+})
+
+registerPollActions(app)

@@ -55,6 +55,39 @@ export type Database = {
                 }
                 Relationships: []
             }
+            polls: {
+                Row: {
+                    closed_at: string | null
+                    created_at: string
+                    created_by_id: string
+                    id: number
+                    options: string[]
+                    question: string
+                    slack_channel_id: string
+                    votes: Json
+                }
+                Insert: {
+                    closed_at?: string | null
+                    created_at?: string
+                    created_by_id: string
+                    id?: number
+                    options: string[]
+                    question: string
+                    slack_channel_id: string
+                    votes: Json
+                }
+                Update: {
+                    closed_at?: string | null
+                    created_at?: string
+                    created_by_id?: string
+                    id?: number
+                    options?: string[]
+                    question?: string
+                    slack_channel_id?: string
+                    votes?: Json
+                }
+                Relationships: []
+            }
             support_roles: {
                 Row: {
                     pd_schedule_id: string
