@@ -98,27 +98,27 @@ export async function supportHeroSet(command: SlashCommand, respond: RespondFn):
     const supportChannelName = command.channel_name.replace(/^(team|feature)/, 'support') // e.g. team-pipeline -> support-pipeline
 
     await respond({
-        text: `*This channel is now configured with a ${roleNickname || 'support hero'} schedule: ${linkifyRoleName({
+        text: `*This channel is now configured with ${roleNickname || 'support hero'} schedule ${linkifyRoleName({
             scheduleId: pdSchedule.id,
             name: pdSchedule.id,
         })}${roleNickname ? `, aka: _${roleNickname}_` : ''}*
-Courtesy of <@${command.user_id}>.
 Every Monday, this week's support hero will be posted, and #${supportChannelName}'s description will be updated.
-Every Wednesday, next week's support hero will be posted.`,
+Every Wednesday, next week's support hero will be posted.
+Courtesy of <@${command.user_id}>.`,
         blocks: [
             {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: `*#${command.channel_name} is now configured with a ${
+                    text: `*#${command.channel_name} is now configured with ${
                         roleNickname || 'support hero'
-                    } schedule: ${linkifyRoleName({
+                    } schedule ${linkifyRoleName({
                         scheduleId: pdSchedule.id,
                         name: pdSchedule.id,
                     })}*
-Courtesy of <@${command.user_id}>.
 Every Monday, this week's support hero will be posted, and #${supportChannelName}'s description will be updated.
-Every Wednesday, next week's support hero will be posted.`,
+Every Wednesday, next week's support hero will be posted.
+Courtesy of <@${command.user_id}>.`,
                 },
             },
         ],
