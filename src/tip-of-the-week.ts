@@ -40,7 +40,7 @@ const POSTHOG_TIPS: Tip[] = [
         "This is particularly helpful for new folks with lots of questions, or simply if you just don't feel like talking to anyone today. We've all been there.",
     ],
     [
-        "Get to the `company-internal` repo faster by typing [github.com/posthog/ops](https://github.com/posthog/ops).",
+        "Get to the `company-internal` repo faster by typing <https://github.com/posthog/ops|github.com/posthog/ops>.",
         "Now what will you build with all that time you just saved?",
     ],
     
