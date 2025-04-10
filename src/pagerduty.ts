@@ -64,6 +64,14 @@ export function fetchPersonOnCallNWeeksFromNow(
     )
 }
 
-export function fetchSchedule(scheduleId: string): Promise<PagerDutySchedule> {
-    return pd.get(`/schedules/${scheduleId}`).then((response) => response.data.schedule)
+export function fetchSchedule(scheduleId: string): Promise<PagerDutySchedule | null> {
+    return pd.get(`/schedules/${scheduleId}`).then((response) => {
+        if (response.status === 404) {
+            return null
+        }
+        if (!response.ok) {
+            throw new Error(`Failed to fetch schedule ${scheduleId}: ${response}`)
+        }
+        return response.data.schedule
+    })
 }

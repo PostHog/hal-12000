@@ -3,7 +3,7 @@ import { RespondFn, SlashCommand } from '@slack/bolt'
 
 import { app, fetchSlackMentionByEmail, linkifyRoleName } from './app'
 import { database } from './data'
-import { fetchPersonOnCallNWeeksFromNow, fetchSchedule, PagerDutySchedule } from './pagerduty'
+import { fetchPersonOnCallNWeeksFromNow, fetchSchedule } from './pagerduty'
 import type { Role } from './roles'
 
 /** Slack command /support-hero */
@@ -25,6 +25,14 @@ export async function supportHeroShow(command: SlashCommand, respond: RespondFn)
     const pdSchedule = await fetchSchedule(supportRole.data.pd_schedule_id)
     const supportCastMember = await fetchPersonOnCallNWeeksFromNow(0, supportRole.data.pd_schedule_id)
     const supportCastMemberMention = await fetchSlackMentionByEmail(supportCastMember)
+
+    if (!pdSchedule) {
+        await respond({
+            text: `⚠️ Schedule *${supportRole.data.pd_schedule_id}* configured for this team no longer exists in PagerDuty`,
+            response_type: 'ephemeral',
+        })
+        return
+    }
 
     await respond({
         text: `*This week in #${command.channel_name}: ${supportCastMemberMention}*\nActive schedule: ${linkifyRoleName(
@@ -62,13 +70,10 @@ export async function supportHeroShow(command: SlashCommand, respond: RespondFn)
 export async function supportHeroSet(command: SlashCommand, respond: RespondFn): Promise<void> {
     // We know pdScheduleId must be non-empty in this function
     const [pdScheduleId, ...roleNicknameParts] = command.text.trim().split(' ').filter(Boolean)
-    let pdSchedule: PagerDutySchedule
-    try {
-        pdSchedule = await fetchSchedule(pdScheduleId)
-    } catch (error) {
-        captureException(error)
+    const pdSchedule = await fetchSchedule(pdScheduleId)
+    if (!pdSchedule) {
         await respond({
-            text: 'Failed to fetch the schedule. Please check the schedule ID and try again.',
+            text: `⚠️ Schedule *${pdScheduleId}* does not exist in PagerDuty`,
             response_type: 'ephemeral',
         })
         return

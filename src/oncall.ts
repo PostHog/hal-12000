@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 
 import { app, fetchSlackMentionByEmail } from './app'
-import { fetchPersonOnCallNWeeksFromNow, fetchSchedule, PagerDutySchedule } from './pagerduty'
+import { fetchPersonOnCallNWeeksFromNow, fetchSchedule } from './pagerduty'
 
 const { ON_CALL_SCHEDULE_IDS, WEEKEND_ON_CALL_SCHEDULE_ID } = process.env
 
@@ -16,14 +16,14 @@ const TITLES = ['Pouring water', 'Fighting fires', 'Saving the day', 'Standing b
 
 async function shoutAboutOnCall(mode: 'current' | 'upcoming'): Promise<void> {
     const currentOnCallSchedulesWithMentions = await Promise.all(
-        ALL_SCHEDULE_IDS_WITH_WEEKDAYS.map(
-            async ([scheduleId, weekday]) =>
-                [
-                    await fetchSchedule(scheduleId),
-                    await fetchPersonOnCallNWeeksFromNow(mode === 'current' ? 0 : 1, scheduleId, weekday).then(
-                        async (person) => await fetchSlackMentionByEmail(person)
-                    ),
-                ] as [PagerDutySchedule, string]
+        ALL_SCHEDULE_IDS_WITH_WEEKDAYS.map(async ([scheduleId, weekday]) =>
+            Promise.all([
+                scheduleId,
+                await fetchSchedule(scheduleId),
+                await fetchPersonOnCallNWeeksFromNow(mode === 'current' ? 0 : 1, scheduleId, weekday).then(
+                    async (person) => await fetchSlackMentionByEmail(person)
+                ),
+            ])
         )
     )
 
@@ -31,7 +31,10 @@ async function shoutAboutOnCall(mode: 'current' | 'upcoming'): Promise<void> {
         mode === 'current' ? 'this' : 'next'
     } week (all times UTC):*
 ${currentOnCallSchedulesWithMentions
-    .map(([schedule, mention]) => {
+    .map(([scheduleId, schedule, mention]) => {
+        if (!schedule) {
+            return `Schedule *${scheduleId}* - _no longer exists in PagerDuty_`
+        }
         const isWeekendSchedule = schedule.id === WEEKEND_ON_CALL_SCHEDULE_ID
         const start = DateTime.fromISO(schedule.schedule_layers[0].rotation_virtual_start, { zone: schedule.time_zone })
         const end = start.plus({ hour: isWeekendSchedule ? 48 : 8 })
