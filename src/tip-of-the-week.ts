@@ -43,7 +43,14 @@ const POSTHOG_TIPS: Tip[] = [
         "Get to the `company-internal` repo faster by typing <https://github.com/posthog/ops|github.com/posthog/ops>.",
         "Now what will you build with all that time you just saved?",
     ],
-    
+    [
+        "Anyone can add or edit a tip of the week by visiting https://github.com/PostHog/hal-12000/blob/main/src/tip-of-the-week.ts",
+        "Meta, I know",
+    ],
+    [
+        "If you don't want to wait for the all hands recording to be posted in #general it gets added to the calendar event shortly after the meeting ends",
+        "Now you have no excuse to miss everybodys favourite weekly TV show",
+    ],
 ]
 
 function getCurrentTipOfTheWeek(): Tip {
