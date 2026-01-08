@@ -51,6 +51,9 @@ const POSTHOG_TIPS: Tip[] = [
         "If you don't want to wait for the all hands recording to be posted in #general it gets added to the calendar event shortly after the meeting ends",
         "Now you have no excuse to miss everybodys favourite weekly TV show",
     ],
+    [
+        "Hedgehogs are not rodents! They are part of the Erinaceinae subfamily, which is a group of mammals. It is considered rude to tell a hedgehog that it is a rodent.
+    ]
 ]
 
 function getCurrentTipOfTheWeek(): Tip {
