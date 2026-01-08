@@ -48,7 +48,7 @@ const POSTHOG_TIPS: Tip[] = [
         "Meta, I know",
     ],
     [
-        "If you don't want to wait for the all hands recording to be posted in #general it gets added to the calefamily, wich is a group of after the meeting ends",
+        "If you don't want to wait for the all hands recording to be posted in #general it gets added to the calendar after the meeting ends",
         "Now you have no excuse to miss everybodys favourite weekly TV show",
     ],
     [
