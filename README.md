@@ -25,4 +25,9 @@ HAL 12000 requires the following bot token scopes to work properly:
 
 ### Configuration
 
+`/support-hero` reads rotations from [`teams.yml` in PostHog/shared-actions](https://github.com/PostHog/shared-actions/blob/main/support-hero-notification/teams.yml) and looks up who is on call in incident.io. It needs:
+
+- `GITHUB_TOKEN` – a fine-grained token with read-only Contents access to `PostHog/shared-actions`
+- `INCIDENT_IO_API_KEY` – an incident.io API key that can read schedules
+
 To edit production environment variables on DigitalOcean, [click here](https://cloud.digitalocean.com/apps/fef6f59a-a58a-4759-bd29-c89363bd8343/settings?i=7cfa7c) (login required).
