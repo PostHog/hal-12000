@@ -28,28 +28,29 @@ const POSTHOG_TIPS: Tip[] = [
         "This way works even if they aren't using the snippet",
     ],
     [
-        "You can create a URL-based notebook by visiting https://us.posthog.com/canvas. Any edits will be reflected in the URL which you can easily copy and share with anyone on the team.",
-        "Great for support if you want to share an insight without modifying anything in a users account",
+        'You can create a URL-based notebook by visiting https://us.posthog.com/canvas. Any edits will be reflected in the URL which you can easily copy and share with anyone on the team.',
+        'Great for support if you want to share an insight without modifying anything in a users account',
     ],
     [
         "Got a question? #ask-max works great as a first pass for product and handbook questions! If you're looking for something in the handbook, try adding 'As a PostHog employee' to give Max more context.",
         "This is particularly helpful for new folks with lots of questions, or simply if you just don't feel like talking to anyone today. We've all been there.",
     ],
     [
-        "Get to the `company-internal` repo faster by typing <https://github.com/posthog/ops|github.com/posthog/ops>.",
-        "Now what will you build with all that time you just saved?",
+        'Get to the `company-internal` repo faster by typing <https://github.com/posthog/ops|github.com/posthog/ops>.',
+        'Now what will you build with all that time you just saved?',
     ],
     [
-        "Anyone can add or edit a tip of the week by visiting https://github.com/PostHog/hal-12000/blob/main/src/tip-of-the-week.ts",
-        "Meta, I know",
+        'Anyone can add or edit a tip of the week by visiting https://github.com/PostHog/hal-12000/blob/main/src/tip-of-the-week.ts',
+        'Meta, I know',
     ],
     [
         "If you don't want to wait for the all hands recording to be posted in #general it gets added to the calendar event shortly after the meeting ends",
-        "Now you have no excuse to miss everybodys favourite weekly TV show",
+        'Now you have no excuse to miss everybodys favourite weekly TV show',
     ],
     [
-        "Hedgehogs are not rodents! They are part of the Erinaceinae subfamily, which is a group of mammals. It is considered rude to tell a hedgehog that it is a rodent.
-    ]
+        'Hedgehogs are not rodents! They are part of the Erinaceinae subfamily, which is a group of mammals.',
+        'It is considered rude to tell a hedgehog that it is a rodent.',
+    ],
 ]
 
 function getCurrentTipOfTheWeek(): Tip {
