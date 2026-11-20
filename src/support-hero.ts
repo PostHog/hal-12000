@@ -29,7 +29,7 @@ async function incidentIoGet<T>(path: string): Promise<T> {
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MILLISECONDS)
     try {
         const response = await fetch(`${INCIDENT_IO_API_URL}${path}`, {
-            headers: { Authorization: `Bearer ${process.env.INCIDENT_IO_API_KEY}` },
+            headers: { Authorization: `Bearer ${process.env.INCIDENTIO_API_KEY}` },
             signal: controller.signal,
         })
         if (!response.ok) {

@@ -25,6 +25,6 @@ HAL 12000 requires the following bot token scopes to work properly:
 
 ### Configuration
 
-`/support-hero` reads rotations from incident.io. Every schedule named `Support Hero: <team>` shows up on its own, so adding a team means creating that schedule. It needs `INCIDENT_IO_API_KEY`, an incident.io API key that can view schedules.
+`/support-hero` reads rotations from incident.io. Every schedule named `Support Hero: <team>` shows up on its own, so adding a team means creating that schedule. It needs `INCIDENTIO_API_KEY`, an incident.io API key that can view schedules.
 
 To edit production environment variables on DigitalOcean, [click here](https://cloud.digitalocean.com/apps/fef6f59a-a58a-4759-bd29-c89363bd8343/settings?i=7cfa7c) (login required).
