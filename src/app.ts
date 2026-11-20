@@ -2,6 +2,7 @@ import { captureException } from '@sentry/node'
 import { App } from '@slack/bolt'
 
 import { kudosGive, kudosShow } from './kudos'
+import { supportHero } from './support-hero'
 
 export const app = new App({
     token: process.env.SLACK_BOT_TOKEN,
@@ -25,4 +26,9 @@ app.command('/kudos', async ({ command, ack, respond }) => {
     } else {
         await kudosGive(command, respond, args)
     }
+})
+
+app.command('/support-hero', async ({ command, ack, respond }) => {
+    await ack()
+    await supportHero(command, respond)
 })
