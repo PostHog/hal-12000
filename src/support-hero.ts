@@ -1,217 +1,154 @@
 import { captureException } from '@sentry/node'
 import { RespondFn, SlashCommand } from '@slack/bolt'
-import { DateTime } from 'luxon'
-import { parse } from 'yaml'
 
-/** The rotation config shared with the scheduled notifications in PostHog/shared-actions. */
-const TEAMS_CONFIG_API_URL =
-    'https://api.github.com/repos/PostHog/shared-actions/contents/support-hero-notification/teams.yml'
-const TEAMS_CONFIG_HTML_URL = 'https://github.com/PostHog/shared-actions/blob/main/support-hero-notification/teams.yml'
-const TEAMS_CONFIG_CACHE_MILLISECONDS = 5 * 60 * 1000
-const REQUEST_TIMEOUT_MILLISECONDS = 2500
+const INCIDENT_IO_API_URL = 'https://api.incident.io/v2'
+const SCHEDULE_NAME_PREFIX = 'Support Hero: '
+const SCHEDULES_PAGE_SIZE = 250
+const REQUEST_TIMEOUT_MILLISECONDS = 10_000
 
-interface SupportTeam {
+interface Shift {
+    start_at: string
+    user?: { name: string; slack_user_id?: string }
+}
+
+interface Schedule {
+    id: string
     name: string
-    scheduleId: string
-    slackChannel: string
+    permalink: string
+    current_shifts?: Shift[]
+    next_shifts?: Shift[]
 }
 
-interface OnCallUser {
-    name: string
-    slackUserId: string | null
+interface SchedulesPage {
+    schedules: Schedule[]
+    pagination_meta?: { after?: string }
 }
 
-interface TeamsConfig {
-    teams?: Record<string, { schedule_id?: string; slack_channel?: string } | null>
-}
-
-/** Serialized incident.io schedule entry. Fields irrelevant to the bot are omitted. */
-interface IncidentIoScheduleEntry {
-    user?: { name?: string; slack_user_id?: string } | null
-}
-
-interface IncidentIoScheduleEntriesResponse {
-    schedule_entries?: {
-        final?: IncidentIoScheduleEntry[]
-        overrides?: IncidentIoScheduleEntry[]
-        scheduled?: IncidentIoScheduleEntry[]
-    }
-}
-
-let teamsCache: { teams: SupportTeam[]; fetchedAt: number } | null = null
-
-/** `fetch` has no default timeout, so a hung upstream would leave the user with no response at all. */
-async function fetchWithTimeout(url: string, headers: Record<string, string>): Promise<Response> {
+async function incidentIoGet<T>(path: string): Promise<T> {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MILLISECONDS)
     try {
-        return await fetch(url, { headers, signal: controller.signal })
+        const response = await fetch(`${INCIDENT_IO_API_URL}${path}`, {
+            headers: { Authorization: `Bearer ${process.env.INCIDENT_IO_API_KEY}` },
+            signal: controller.signal,
+        })
+        if (!response.ok) {
+            throw new Error(`incident.io responded ${response.status} for ${path}`)
+        }
+        return (await response.json()) as T
     } finally {
         clearTimeout(timeout)
     }
 }
 
-async function fetchSupportTeams(): Promise<SupportTeam[]> {
-    if (teamsCache && Date.now() - teamsCache.fetchedAt < TEAMS_CONFIG_CACHE_MILLISECONDS) {
-        return teamsCache.teams
+async function fetchSupportHeroSchedules(): Promise<Schedule[]> {
+    const schedules: Schedule[] = []
+    let after: string | undefined
+    do {
+        const params = new URLSearchParams({ page_size: String(SCHEDULES_PAGE_SIZE), ...(after && { after }) })
+        const page = await incidentIoGet<SchedulesPage>(`/schedules?${params.toString()}`)
+        schedules.push(...page.schedules)
+        after = page.pagination_meta?.after
+    } while (after)
+    return schedules
+        .filter((schedule) => schedule.name.startsWith(SCHEDULE_NAME_PREFIX))
+        .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+function teamName(schedule: Schedule): string {
+    return schedule.name.slice(SCHEDULE_NAME_PREFIX.length)
+}
+
+function slugify(text: string): string {
+    return text
+        .toLowerCase()
+        .replace(/&/g, 'and')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+}
+
+function findSchedules(schedules: Schedule[], teamOrChannel: string): Schedule[] {
+    const slug = slugify(teamOrChannel).replace(/^(team|support|group)-/, '')
+    if (!slug) {
+        return []
     }
-    const response = await fetchWithTimeout(TEAMS_CONFIG_API_URL, {
-        Accept: 'application/vnd.github.raw',
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-        'User-Agent': 'hal-12000',
-    })
-    if (!response.ok) {
-        throw new Error(`Failed to fetch support hero config from GitHub: ${response.status}`)
-    }
-    const config = parse(await response.text()) as TeamsConfig | null
-    const teams = Object.entries(config?.teams ?? {}).flatMap(([name, team]) =>
-        team?.schedule_id && team.slack_channel
-            ? [{ name, scheduleId: team.schedule_id, slackChannel: team.slack_channel.replace(/^#/, '') }]
-            : []
+    const exactMatches = schedules.filter((schedule) => slugify(teamName(schedule)) === slug)
+    return exactMatches.length
+        ? exactMatches
+        : schedules.filter((schedule) => slugify(teamName(schedule)).startsWith(slug))
+}
+
+function formatHeroes(shifts: Shift[] | undefined): string {
+    const heroes = (shifts ?? []).flatMap(({ user }) =>
+        user ? [user.slack_user_id ? `<@${user.slack_user_id}>` : user.name] : []
     )
-    teamsCache = { teams, fetchedAt: Date.now() }
-    return teams
+    return [...new Set(heroes)].join(', ') || '_no one scheduled_'
 }
 
-function formatIncidentIoTime(dateTime: DateTime): string {
-    return dateTime.toUTC().toFormat("yyyy-LL-dd'T'HH:mm:ss'Z'")
+function formatTeam(schedule: Schedule): string {
+    return `<${schedule.permalink}|${teamName(schedule)}>`
 }
 
-async function fetchPersonOnCallAt(scheduleId: string, dateTime: DateTime): Promise<OnCallUser | null> {
-    const params = new URLSearchParams({
-        schedule_id: scheduleId,
-        entry_window_start: formatIncidentIoTime(dateTime),
-        entry_window_end: formatIncidentIoTime(dateTime.plus({ minutes: 1 })),
-    })
-    const response = await fetchWithTimeout(`https://api.incident.io/v2/schedule_entries?${params}`, {
-        Authorization: `Bearer ${process.env.INCIDENT_IO_API_KEY}`,
-    })
-    if (!response.ok) {
-        throw new Error(`Failed to fetch incident.io schedule ${scheduleId}: ${response.status}`)
+function formatAllTeams(schedules: Schedule[]): string {
+    const lines = schedules.map((schedule) => `• *${formatTeam(schedule)}*: ${formatHeroes(schedule.current_shifts)}`)
+    return `*Current support heroes:*\n${lines.join('\n')}`
+}
+
+async function fetchScheduleWithNextShifts(id: string): Promise<Schedule> {
+    const { schedule } = await incidentIoGet<{ schedule: Schedule }>(`/schedules/${id}`)
+    return schedule
+}
+
+async function formatTeamWithNextHero({ id }: Schedule): Promise<string> {
+    const schedule = await fetchScheduleWithNextShifts(id)
+    const heading = `*Support hero for ${formatTeam(schedule)}:* ${formatHeroes(schedule.current_shifts)}`
+    const nextShift = schedule.next_shifts?.[0]
+    if (!nextShift) {
+        return heading
     }
-    const data = (await response.json()) as IncidentIoScheduleEntriesResponse
-    const entries = data.schedule_entries
-    // `final` already has overrides applied, so only fall back when it is empty
-    const user = (
-        entries?.final?.length ? entries.final : entries?.overrides?.length ? entries.overrides : entries?.scheduled
-    )?.[0]?.user
-    if (!user) {
-        return null
-    }
-    return { name: user.name || 'Unknown', slackUserId: user.slack_user_id || null }
+    const handover = Math.floor(Date.parse(nextShift.start_at) / 1000)
+    return `${heading}\nNext up: ${formatHeroes(schedule.next_shifts)} from <!date^${handover}^{date_short_pretty}|${
+        nextShift.start_at
+    }>`
 }
 
-function formatUser(user: OnCallUser | null): string {
-    if (!user) {
-        return '_no one scheduled_'
-    }
-    return user.slackUserId ? `<@${user.slackUserId}>` : user.name
-}
-
-/** Team channels are usually `team-foo`, but `support-foo` and `feature-foo` refer to the same team. */
-function channelSlug(channelName: string): string {
-    return channelName.replace(/^(team|support|feature)-/, '')
-}
-
-function findTeamsForChannel(teams: SupportTeam[], channelName: string): SupportTeam[] {
-    const exactMatches = teams.filter((team) => team.slackChannel === channelName)
-    if (exactMatches.length) {
-        return exactMatches
-    }
-    return teams.filter((team) => channelSlug(team.slackChannel) === channelSlug(channelName))
-}
-
-function configContext(): { type: 'context'; elements: { type: 'mrkdwn'; text: string }[] } {
-    return {
-        type: 'context',
-        elements: [{ type: 'mrkdwn', text: `<${TEAMS_CONFIG_HTML_URL}|⚙️ View or edit rotations>` }],
-    }
-}
-
-async function respondWithTeams(respond: RespondFn, teams: SupportTeam[]): Promise<void> {
-    // Rotations hand over on Mondays, so midday next Monday is safely inside next week's shift
-    const nextWeek = DateTime.utc().startOf('week').plus({ weeks: 1 }).set({ hour: 12 })
-    const sections = await Promise.all(
-        teams.map(async (team) => {
-            try {
-                const [current, next] = await Promise.all([
-                    fetchPersonOnCallAt(team.scheduleId, DateTime.utc()),
-                    fetchPersonOnCallAt(team.scheduleId, nextWeek),
-                ])
-                return `*Support hero for ${team.name}:* ${formatUser(current)}\nNext week: ${formatUser(next)}`
-            } catch (error) {
-                captureException(error)
-                return `*Support hero for ${team.name}:* ⚠️ couldn't load the schedule from incident.io`
-            }
-        })
-    )
-    const text = sections.join('\n\n')
-    await respond({
-        text,
-        blocks: [{ type: 'section', text: { type: 'mrkdwn', text } }, configContext()],
-        response_type: 'ephemeral',
-    })
-}
-
-async function respondWithAllTeams(respond: RespondFn, teams: SupportTeam[]): Promise<void> {
-    const now = DateTime.utc()
-    const lines = await Promise.all(
-        teams.map(async (team) => {
-            try {
-                return `• *${team.name}*: ${formatUser(await fetchPersonOnCallAt(team.scheduleId, now))}`
-            } catch (error) {
-                captureException(error)
-                return `• *${team.name}*: ⚠️ couldn't load the schedule`
-            }
-        })
-    )
-    const heading = "*This week's support heroes:*"
-    await respond({
-        text: `${heading}\n${lines.join('\n')}`,
-        blocks: [
-            { type: 'section', text: { type: 'mrkdwn', text: heading } },
-            { type: 'section', text: { type: 'mrkdwn', text: lines.join('\n') } },
-            configContext(),
-        ],
-        response_type: 'ephemeral',
-    })
-}
-
-/** Slack command /support-hero [team | all] */
 export async function supportHero(command: SlashCommand, respond: RespondFn): Promise<void> {
-    let teams: SupportTeam[]
+    let schedules: Schedule[]
     try {
-        teams = await fetchSupportTeams()
+        schedules = await fetchSupportHeroSchedules()
     } catch (error) {
         captureException(error)
         await respond({
-            text: "⚠️ Couldn't load the support hero rotations right now. Try again in a minute.",
+            text: "⚠️ Couldn't load the support hero rotations from incident.io. Try again in a minute.",
             response_type: 'ephemeral',
         })
         return
     }
 
-    const query = command.text.trim().replace(/^#/, '').toLowerCase()
-
-    if (query === 'all') {
-        await respondWithAllTeams(respond, teams)
+    const query = command.text.trim()
+    if (query.toLowerCase() === 'all') {
+        await respond({ text: formatAllTeams(schedules), response_type: 'ephemeral' })
         return
     }
 
-    const matchingTeams = query
-        ? teams.filter((team) => team.name === query || team.slackChannel === query)
-        : findTeamsForChannel(teams, command.channel_name)
+    const matchingSchedules = findSchedules(schedules, query || command.channel_name)
+    if (!matchingSchedules.length) {
+        const reason = query
+            ? `No support hero rotation matches \`${query}\`.`
+            : 'No support hero rotation matches this channel. Use `/support-hero <team>` for one team.'
+        await respond({ text: `${reason}\n\n${formatAllTeams(schedules)}`, response_type: 'ephemeral' })
+        return
+    }
 
-    if (!matchingTeams.length) {
-        const teamNames = teams.map((team) => `\`${team.name}\``).join(', ')
-        await respond({
-            text: query
-                ? `No support hero rotation called \`${query}\`. Available teams: ${teamNames}.`
-                : `#${command.channel_name} doesn't have a support hero rotation. Use \`/support-hero <team>\` or \`/support-hero all\`, or add this channel in <${TEAMS_CONFIG_HTML_URL}|teams.yml>.`,
-            response_type: 'ephemeral',
+    const sections = await Promise.all(
+        matchingSchedules.map(async (schedule) => {
+            try {
+                return await formatTeamWithNextHero(schedule)
+            } catch (error) {
+                captureException(error)
+                return `*Support hero for ${formatTeam(schedule)}:* ⚠️ couldn't load the schedule from incident.io`
+            }
         })
-        return
-    }
-
-    await respondWithTeams(respond, matchingTeams)
+    )
+    await respond({ text: sections.join('\n\n'), response_type: 'ephemeral' })
 }
